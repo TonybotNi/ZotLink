@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "/opt/homebrew/Caskroom/miniconda/base/envs/mcp_dev/bin/python3",
+      "args": ["/Users/mudrobot/Documents/CodeField/ScholarTool/ZotLink/run_server.py"],
+      "env": {
+        "PYTHONPATH": "/Users/mudrobot/Documents/CodeField/ScholarTool/ZotLink/src"
+      }
+    }
+  }
+} 

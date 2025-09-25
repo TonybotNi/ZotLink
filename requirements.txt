@@ -1,0 +1,18 @@
+# Zotero Connector MCP Dependencies
+# 专注于学术文献管理的轻量级依赖
+
+# MCP协议支持
+mcp>=1.0.0
+
+# 现有依赖
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+python-mcp-server>=0.1.0
+pydantic>=2.0.0
+
+# 新增浏览器自动化支持
+playwright>=1.40.0
+
+# 可选：浏览器cookie读取（高级功能）
+pycryptodome>=3.19.0 

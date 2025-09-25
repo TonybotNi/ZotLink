@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+recursive-include zotlink/browser_bookmarks *.js
+recursive-include docs *.md
+
+
+
