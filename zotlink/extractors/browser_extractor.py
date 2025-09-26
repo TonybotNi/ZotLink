@@ -467,6 +467,146 @@ class BrowserExtractor(BaseExtractor):
                 
                 # 执行JavaScript来提取元数据和PDF链接
                 metadata = await page.evaluate(extractor_instance._get_extraction_script())
+                logger.info(f"🔍 初始提取结果: title='{metadata.get('title', 'None')}', authors='{metadata.get('authors', 'None')[:50] if metadata.get('authors') else 'None'}...')")
+                
+                # 🎯 强制调试：如果标题为空，尝试更激进的提取
+                if not metadata.get('title') or not metadata.get('title').strip():
+                    logger.warning(f"⚠️ 初次提取标题为空，执行强化提取: {url}")
+                    
+                    # 尝试更激进的标题提取
+                    enhanced_title = await page.evaluate("""
+                        () => {
+                            // 更全面的标题提取策略
+                            const strategies = [
+                                // Citation 元数据
+                                () => {
+                                    const meta = document.querySelector('meta[name="citation_title"]');
+                                    return meta ? meta.content : null;
+                                },
+                                // DC 元数据
+                                () => {
+                                    const meta = document.querySelector('meta[name="DC.title"]');
+                                    return meta ? meta.content : null;
+                                },
+                                // Open Graph
+                                () => {
+                                    const meta = document.querySelector('meta[property="og:title"]');
+                                    return meta ? meta.content : null;
+                                },
+                                // 预印本网站特殊选择器
+                                () => {
+                                    const url = window.location.href.toLowerCase();
+                                    if (url.includes('medrxiv.org') || url.includes('biorxiv.org')) {
+                                        const selectors = [
+                                            'h1.highwire-cite-title',
+                                            '#page-title',
+                                            'h1.article-title',
+                                            '.article-title h1',
+                                            '.hw-article-title',
+                                            'div[id="papertitle"]',
+                                            'h1[property="name"]'
+                                        ];
+                                        for (const sel of selectors) {
+                                            const el = document.querySelector(sel);
+                                            if (el && el.textContent.trim().length > 15) {
+                                                return el.textContent.trim();
+                                            }
+                                        }
+                                    }
+                                    return null;
+                                },
+                                // ChemRxiv特殊处理
+                                () => {
+                                    const url = window.location.href.toLowerCase();
+                                    if (url.includes('chemrxiv.org')) {
+                                        const selectors = [
+                                            'h1[data-testid="article-title"]',
+                                            '.article-header h1',
+                                            '.manuscript-title h1',
+                                            'h1.manuscript-title'
+                                        ];
+                                        for (const sel of selectors) {
+                                            const el = document.querySelector(sel);
+                                            if (el && el.textContent.trim().length > 15) {
+                                                return el.textContent.trim();
+                                            }
+                                        }
+                                    }
+                                    return null;
+                                },
+                                // 通用H1策略
+                                () => {
+                                    const h1s = document.querySelectorAll('h1');
+                                    for (const h1 of h1s) {
+                                        const text = h1.textContent.trim();
+                                        if (text.length > 20 && 
+                                            !text.toLowerCase().includes('menu') &&
+                                            !text.toLowerCase().includes('navigation') &&
+                                            !text.toLowerCase().includes('home') &&
+                                            !text.toLowerCase().includes('search')) {
+                                            return text;
+                                        }
+                                    }
+                                    return null;
+                                },
+                                // 清理后的document.title
+                                () => {
+                                    if (document.title) {
+                                        let title = document.title.trim();
+                                        title = title.replace(/ - medRxiv$/i, '');
+                                        title = title.replace(/ - bioRxiv$/i, ''); 
+                                        title = title.replace(/ - ChemRxiv$/i, '');
+                                        title = title.replace(/ \| .*$/i, '');
+                                        if (title.length > 20) return title;
+                                    }
+                                    return null;
+                                }
+                            ];
+                            
+                            for (let i = 0; i < strategies.length; i++) {
+                                try {
+                                    const result = strategies[i]();
+                                    if (result && result.trim().length > 10) {
+                                        console.log(`策略 ${i+1} 成功:`, result.substring(0, 50));
+                                        return result.trim();
+                                    }
+                                } catch (e) {
+                                    console.log(`策略 ${i+1} 失败:`, e);
+                                }
+                            }
+                            
+                            return '';
+                        }
+                    """)
+                    
+                    if enhanced_title and enhanced_title.strip():
+                        logger.info(f"✅ 强化提取成功获取标题: {enhanced_title[:50]}...")
+                        metadata['title'] = enhanced_title.strip()
+                    else:
+                        logger.error(f"❌ 所有标题提取策略都失败: {url}")
+                        # 最后的绝望尝试：直接从页面抓取任何看起来像标题的内容
+                        fallback_title = await page.evaluate("""
+                            () => {
+                                // 绝望的标题提取
+                                const allText = document.body.innerText || '';
+                                const lines = allText.split('\\n').map(line => line.trim()).filter(line => line.length > 20 && line.length < 200);
+                                
+                                for (const line of lines.slice(0, 10)) { // 只检查前10行
+                                    if (!line.toLowerCase().includes('menu') && 
+                                        !line.toLowerCase().includes('search') &&
+                                        !line.toLowerCase().includes('login') &&
+                                        !line.toLowerCase().includes('copyright')) {
+                                        return line;
+                                    }
+                                }
+                                return '';
+                            }
+                        """)
+                        if fallback_title and fallback_title.strip():
+                            logger.warning(f"🆘 绝望提取成功: {fallback_title[:50]}...")
+                            metadata['title'] = fallback_title.strip()
+                        else:
+                            logger.error(f"💀 完全无法提取标题: {url}")
                 
                 # 识别域名类型
                 domain_info = extractor_instance._identify_domain(url)

@@ -104,12 +104,15 @@ class ExtractorManager:
             browser_result = await self._extract_with_browser(url)
             
             # 🎯 智能回退：如果浏览器提取的标题为空，尝试HTTP提取器作为标题补充
+            logger.info(f"🔍 浏览器提取结果检查: success={browser_result.get('success')}, title='{browser_result.get('title', 'None')}'")
+            
             if (browser_result and 
                 browser_result.get('success') != False and  # 不是明确的失败
                 (not browser_result.get('title') or not browser_result.get('title').strip())):
                 
                 logger.warning(f"⚠️ 浏览器提取标题为空，尝试HTTP提取器补充标题: {url}")
                 http_result = self._extract_with_http(url)
+                logger.info(f"🔍 HTTP提取结果: title='{http_result.get('title', 'None') if http_result else 'No Result'}'")
                 
                 # 如果HTTP提取器有标题，使用它来补充浏览器结果
                 if (http_result and 
