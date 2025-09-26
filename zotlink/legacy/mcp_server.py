@@ -834,7 +834,7 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[TextCon
                     if arxiv_match:
                         arxiv_id = arxiv_match.group(2)
                         message += f"🏷️ **arXiv ID**: {arxiv_id}\n"
-                        message += f"📄 **标题**: {paper_title or 'Attention Is All You Need'}\n"
+                        message += f"📄 **标题**: {paper_title or f'arXiv:{arxiv_id} (标题提取中...)'}\n"
                         message += f"🔗 **摘要页面**: https://arxiv.org/abs/{arxiv_id}\n"
                         message += f"📥 **PDF链接**: https://arxiv.org/pdf/{arxiv_id}.pdf\n"
                 else:
