@@ -87,7 +87,7 @@ python run_server.py
 {
   "mcpServers": {
     "zotlink": {
-      "command": "zotlink",
+      "command": "/path/to/zotlink",
       "args": [],
       "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
       "zotero_storage_dir": "/Users/yourname/Zotero/storage"
