@@ -72,7 +72,7 @@ class ZoteroConnector:
         支持：
           - 环境变量 ZOTLINK_ZOTERO_DB 指定数据库完整路径
           - 环境变量 ZOTLINK_ZOTERO_DIR 指定storage目录（可选）
-          - Claude配置文件中的 zotero_database_path / zotero_storage_dir
+          - 通过MCP环境变量传递的配置（推荐）
           - 配置文件 ~/.zotlink/config.json 中的 zotero.database_path / zotero.storage_dir
         """
         try:
@@ -151,30 +151,10 @@ class ZoteroConnector:
                         mcp_servers = claude_config.get('mcpServers', {})
                         zotlink_config = mcp_servers.get('zotlink', {})
                         
-                        # 检查数据库路径配置
-                        if not self._zotero_db_override:
-                            db_path = zotlink_config.get('zotero_database_path', '').strip()
-                            if db_path:
-                                candidate_db = Path(os.path.expanduser(db_path))
-                                if candidate_db.exists():
-                                    self._zotero_db_override = candidate_db
-                                    logger.info(f"🔧 使用Claude配置指定Zotero数据库路径: {candidate_db}")
-                                else:
-                                    logger.warning(f"⚠️ Claude配置中zotero_database_path不存在: {candidate_db}")
-                        
-                        # 检查存储目录配置
-                        if not self._zotero_storage_dir:
-                            storage_dir = zotlink_config.get('zotero_storage_dir', '').strip()
-                            if storage_dir:
-                                candidate_storage = Path(os.path.expanduser(storage_dir))
-                                if candidate_storage.exists():
-                                    self._zotero_storage_dir = candidate_storage
-                                    logger.info(f"🔧 使用Claude配置指定storage目录: {candidate_storage}")
-                                else:
-                                    logger.warning(f"⚠️ Claude配置中zotero_storage_dir不存在: {candidate_storage}")
-                        
-                        # 找到配置文件就退出循环
-                        logger.debug(f"📖 读取Claude配置文件: {config_path}")
+                        # Claude配置文件存在，记录但不再读取非标准MCP字段
+                        # 推荐使用env环境变量方式配置Zotero路径
+                        logger.debug(f"📖 找到Claude配置文件: {config_path}")
+                        logger.info("💡 推荐在MCP配置中使用env环境变量设置Zotero路径")
                         break
                         
                     except Exception as e:

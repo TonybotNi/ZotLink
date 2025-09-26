@@ -89,8 +89,10 @@ python run_server.py
     "zotlink": {
       "command": "/path/to/zotlink",
       "args": [],
-      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
-      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+      "env": {
+        "ZOTLINK_ZOTERO_DB": "/Users/yourname/Zotero/zotero.sqlite",
+        "ZOTLINK_ZOTERO_DIR": "/Users/yourname/Zotero/storage"
+      }
     }
   }
 }
@@ -114,8 +116,10 @@ python run_server.py
     "zotlink": {
       "command": "/full/path/to/python",
       "args": ["-m", "zotlink.zotero_mcp_server"],
-      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
-      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+      "env": {
+        "ZOTLINK_ZOTERO_DB": "/Users/yourname/Zotero/zotero.sqlite",
+        "ZOTLINK_ZOTERO_DIR": "/Users/yourname/Zotero/storage"
+      }
     }
   }
 }
@@ -125,6 +129,8 @@ python run_server.py
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Linux**: `~/.config/claude/claude_desktop_config.json`  
 - **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
+
+**Note**: Using `env` variables follows MCP standard and works with all MCP clients (Claude Desktop, Cherry Studio, etc.).
 
 ## 🧰 Available Tools
 
