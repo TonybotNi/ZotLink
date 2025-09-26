@@ -151,6 +151,7 @@ class CVFExtractor(BaseExtractor):
                         'title': title,
                         'first_author_lastname': first_author_lastname
                     })
+                    logger.info(f"🎯 CVF URL备用提取标题成功: '{title}'")
         
         return metadata
     
