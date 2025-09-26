@@ -43,6 +43,19 @@ class BioRxivDirectExtractor(BaseExtractor):
         # 从URL提取基本信息
         basic_info = self._extract_from_url(url)
         
+        # 🎯 尝试从页面获取真实标题
+        try:
+            page_metadata = self._extract_from_page(url)
+            if page_metadata.get('title'):
+                basic_info['title'] = page_metadata['title']
+                logger.info(f"✅ 从页面提取到标题: {page_metadata['title']}")
+            if page_metadata.get('creators'):
+                basic_info['creators'] = page_metadata['creators']
+            if page_metadata.get('abstractNote'):
+                basic_info['abstractNote'] = page_metadata['abstractNote']
+        except Exception as e:
+            logger.warning(f"⚠️ 页面元数据提取失败: {e}")
+        
         # 下载PDF内容
         pdf_content = self._download_pdf_content(basic_info['pdf_url'])
         
@@ -83,6 +96,115 @@ class BioRxivDirectExtractor(BaseExtractor):
         }
         
         return metadata
+    
+    def _extract_from_page(self, url: str) -> Dict[str, Any]:
+        """从bioRxiv页面提取真实的元数据"""
+        try:
+            # 构造摘要页面URL
+            abstract_url = url
+            if '/full/' in url:
+                abstract_url = url.replace('/full/', '/')
+            elif url.endswith('.pdf'):
+                abstract_url = url.replace('.pdf', '')
+                
+            logger.info(f"🌐 获取bioRxiv页面: {abstract_url}")
+            response = self.session.get(abstract_url, timeout=15)
+            
+            if response.status_code != 200:
+                logger.warning(f"⚠️ 无法访问页面: {response.status_code}")
+                return {}
+            
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(response.content, 'html.parser')
+            metadata = {}
+            
+            # 提取标题
+            title_selectors = [
+                'meta[name="citation_title"]',
+                'h1.highwire-cite-title',
+                'h1#page-title', 
+                'h1.article-title',
+                '.article-title h1',
+                'h1'
+            ]
+            
+            for selector in title_selectors:
+                title_element = soup.select_one(selector)
+                if title_element:
+                    if title_element.name == 'meta':
+                        title = title_element.get('content', '').strip()
+                    else:
+                        title = title_element.get_text().strip()
+                    
+                    if title and len(title) > 10:
+                        metadata['title'] = title
+                        logger.info(f"✅ 提取标题: {title}")
+                        break
+            
+            # 提取作者
+            authors = []
+            author_selectors = [
+                'meta[name="citation_author"]',
+                '.contrib-group .contrib',
+                '.author-list .author'
+            ]
+            
+            for selector in author_selectors:
+                author_elements = soup.select(selector)
+                if author_elements:
+                    for author_el in author_elements[:10]:  # 限制作者数量
+                        if author_el.name == 'meta':
+                            author_name = author_el.get('content', '').strip()
+                        else:
+                            author_name = author_el.get_text().strip()
+                        
+                        if author_name:
+                            # 简单的姓名分割
+                            name_parts = author_name.split()
+                            if len(name_parts) >= 2:
+                                authors.append({
+                                    "creatorType": "author",
+                                    "firstName": " ".join(name_parts[:-1]),
+                                    "lastName": name_parts[-1]
+                                })
+                            else:
+                                authors.append({
+                                    "creatorType": "author", 
+                                    "firstName": "",
+                                    "lastName": author_name
+                                })
+                    break
+            
+            if authors:
+                metadata['creators'] = authors
+                logger.info(f"✅ 提取作者: {len(authors)}位")
+            
+            # 提取摘要
+            abstract_selectors = [
+                'meta[name="citation_abstract"]',
+                '.abstract p',
+                '#abstract p',
+                '.article-summary p'
+            ]
+            
+            for selector in abstract_selectors:
+                abstract_element = soup.select_one(selector)
+                if abstract_element:
+                    if abstract_element.name == 'meta':
+                        abstract = abstract_element.get('content', '').strip()
+                    else:
+                        abstract = abstract_element.get_text().strip()
+                    
+                    if abstract and len(abstract) > 20:
+                        metadata['abstractNote'] = abstract
+                        logger.info(f"✅ 提取摘要: {len(abstract)}字符")
+                        break
+            
+            return metadata
+            
+        except Exception as e:
+            logger.error(f"❌ 页面元数据提取异常: {e}")
+            return {}
     
     def _download_pdf_content(self, pdf_url: str) -> Optional[bytes]:
         """下载PDF内容（在新线程中执行异步任务）"""

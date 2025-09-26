@@ -17,6 +17,7 @@ from .cvf_extractor import CVFExtractor
 from .generic_extractor import GenericOpenAccessExtractor
 from .browser_extractor import BrowserExtractor, PLAYWRIGHT_AVAILABLE
 from .biorxiv_direct_extractor import BioRxivDirectExtractor
+from .preprint_extractor import PreprintExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,11 @@ class ExtractorManager:
             biorxiv_extractor = BioRxivDirectExtractor(self.session)
             self.extractors.append(biorxiv_extractor)
             logger.info("✅ 注册BioRxiv专用提取器")
+            
+            # medRxiv/chemRxiv专用提取器
+            preprint_extractor = PreprintExtractor(self.session)
+            self.extractors.append(preprint_extractor)
+            logger.info("✅ 注册Preprint提取器 (medRxiv/chemRxiv)")
             
             nature_extractor = NatureExtractor(self.session)
             self.extractors.append(nature_extractor)

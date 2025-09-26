@@ -44,15 +44,30 @@ class CVFExtractor(BaseExtractor):
         try:
             # 从URL提取基本信息
             metadata = self._extract_from_url(url)
+            logger.info(f"🔍 从URL提取的元数据: title='{metadata.get('title', 'None')}'")
             
             # 尝试获取对应的HTML页面来提取更多信息
             html_url = self._get_html_url_from_pdf(url)
             if html_url:
                 html_metadata = self._extract_from_html_page(html_url)
-                # 优先使用HTML页面的信息
+                logger.info(f"🌐 从HTML提取的元数据: title='{html_metadata.get('title', 'None')}'")
+                
+                # 优先使用HTML页面的信息，但保护重要字段
                 for key, value in html_metadata.items():
-                    if value:  # 只有当HTML页面的值不为空时才覆盖
+                    if value:  # 只有当HTML页面的值不为空且非None时才覆盖
+                        # 🎯 修复：对于title字段，如果HTML提取失败，不要覆盖URL提取的标题
+                        if key == 'title' and metadata.get('title') and not value.strip():
+                            logger.warning(f"⚠️ HTML标题为空，保留URL提取的标题: {metadata.get('title')}")
+                            continue
                         metadata[key] = value
+            
+            # 🎯 确保标题不为空
+            if not metadata.get('title') or not metadata.get('title').strip():
+                logger.warning("⚠️ 标题为空，尝试从URL重新提取")
+                url_metadata = self._extract_from_url(url)
+                if url_metadata.get('title'):
+                    metadata['title'] = url_metadata['title']
+                    logger.info(f"✅ 重新设置标题: {metadata['title']}")
             
             # 生成TLDR
             if metadata.get('abstract'):
@@ -65,6 +80,7 @@ class CVFExtractor(BaseExtractor):
                 'pdf_url': url if url.endswith('.pdf') else None
             })
             
+            logger.info(f"✅ CVF最终元数据: title='{metadata.get('title', 'None')}'")
             return metadata
             
         except Exception as e:
