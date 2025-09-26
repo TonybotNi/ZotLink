@@ -82,7 +82,22 @@ python run_server.py
 
 ### MCP 集成（Claude Desktop）
 
-最简配置：
+**推荐配置**（包含Zotero路径）：
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "zotlink",
+      "args": [],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+    }
+  }
+}
+```
+
+**最简配置**（自动检测Zotero路径）：
 
 ```json
 {
@@ -92,18 +107,25 @@ python run_server.py
 }
 ```
 
-备用方式（显式 Python 路径）：
+**备用方式**（显式Python路径）：
 
 ```json
 {
   "mcpServers": {
     "zotlink": {
       "command": "/full/path/to/python",
-      "args": ["-m", "zotlink.zotero_mcp_server"]
+      "args": ["-m", "zotlink.zotero_mcp_server"],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
     }
   }
 }
 ```
+
+**Claude配置文件位置**：
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`  
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
 
 ## 🧰 可用工具
 

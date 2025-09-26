@@ -81,7 +81,22 @@ python run_server.py
 
 ### MCP Integration (Claude Desktop)
 
-Minimal config:
+**Recommended configuration** (with Zotero paths):
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "zotlink",
+      "args": [],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+    }
+  }
+}
+```
+
+**Minimal config** (auto-detect Zotero paths):
 
 ```json
 {
@@ -91,18 +106,25 @@ Minimal config:
 }
 ```
 
-Fallback (explicit Python path):
+**Fallback** (explicit Python path):
 
 ```json
 {
   "mcpServers": {
     "zotlink": {
       "command": "/full/path/to/python",
-      "args": ["-m", "zotlink.zotero_mcp_server"]
+      "args": ["-m", "zotlink.zotero_mcp_server"],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
     }
   }
 }
 ```
+
+**Claude config file locations:**
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`  
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
 
 ## 🧰 Available Tools
 
