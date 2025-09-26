@@ -668,6 +668,9 @@ class ZoteroConnector:
             
             if result["success"]:
                 logger.info(f"成功保存到Zotero: {enhanced_paper_info.get('title', '未知标题')}")
+                # 🎯 关键修复：在返回结果中添加正确的标题信息
+                result["title"] = enhanced_paper_info.get('title', '')
+                result["paper_info"] = enhanced_paper_info
             
             return result
             
@@ -1277,8 +1280,6 @@ class ZoteroConnector:
             result = {
                 "success": True,
                 "message": "论文已成功保存" + ("，PDF附件已添加" if pdf_attachment_success else ""),
-                "title": enhanced_paper_info.get('title', ''),  # 🎯 关键修复：返回正确的标题
-                "paper_info": enhanced_paper_info,  # 返回完整的论文信息
                 "details": {
                     "metadata_saved": True,
                     "collection_moved": collection_move_success,
