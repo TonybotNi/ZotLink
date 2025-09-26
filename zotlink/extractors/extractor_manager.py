@@ -97,11 +97,39 @@ class ExtractorManager:
     
     async def extract_metadata(self, url: str) -> Dict[str, Any]:
         """
-        提取论文元数据，优先使用浏览器模式处理反爬虫网站
+        提取论文元数据，优先使用浏览器模式处理反爬虫网站，但有智能回退机制
         """
         # 检查是否需要使用浏览器模式
         if self._should_use_browser(url):
-            return await self._extract_with_browser(url)
+            browser_result = await self._extract_with_browser(url)
+            
+            # 🎯 智能回退：如果浏览器提取的标题为空，尝试HTTP提取器作为标题补充
+            if (browser_result and 
+                browser_result.get('success') != False and  # 不是明确的失败
+                (not browser_result.get('title') or not browser_result.get('title').strip())):
+                
+                logger.warning(f"⚠️ 浏览器提取标题为空，尝试HTTP提取器补充标题: {url}")
+                http_result = self._extract_with_http(url)
+                
+                # 如果HTTP提取器有标题，使用它来补充浏览器结果
+                if (http_result and 
+                    http_result.get('title') and 
+                    http_result.get('title').strip() and 
+                    len(http_result.get('title').strip()) > 10):
+                    
+                    logger.info(f"✅ 使用HTTP提取器补充标题: {http_result.get('title')}")
+                    browser_result['title'] = http_result['title']
+                    
+                    # 也可以补充其他元数据（如果浏览器结果中缺失）
+                    for field in ['authors', 'abstract', 'DOI']:
+                        if not browser_result.get(field) and http_result.get(field):
+                            browser_result[field] = http_result[field]
+                    
+                    # 标记这是混合提取结果
+                    original_extractor = browser_result.get('extractor', 'Browser-Driven')
+                    browser_result['extractor'] = f"{original_extractor}+{http_result.get('extractor', 'HTTP')}"
+                    
+            return browser_result
         
         # 使用HTTP提取器
         return self._extract_with_http(url)
