@@ -507,12 +507,16 @@ class BrowserExtractor(BaseExtractor):
         () => {
             const metadata = {};
             
-            // 提取基本元数据
-            metadata.title = document.title || '';
+            // 🎯 优先提取citation_title（最可靠的标题来源）
+            const citationTitleMeta = document.querySelector('meta[name="citation_title"]');
+            if (citationTitleMeta && citationTitleMeta.content) {
+                metadata.title = citationTitleMeta.content.trim();
+            } else {
+                metadata.title = document.title || '';
+            }
             
-            // 提取citation标签
+            // 提取其他citation标签
             const citationFields = {
-                'citation_title': 'title',
                 'citation_author': 'authors',
                 'citation_date': 'date',
                 'citation_publication_date': 'date',
@@ -530,7 +534,7 @@ class BrowserExtractor(BaseExtractor):
                 if (elements.length > 0) {
                     if (citationField === 'citation_author') {
                         metadata.authors = Array.from(elements).map(el => el.content).join('; ');
-                    } else {
+                    } else if (!metadata[metaField]) {  // 避免覆盖已设置的值
                         metadata[metaField] = elements[0].content;
                     }
                 }
@@ -588,10 +592,99 @@ class BrowserExtractor(BaseExtractor):
                 }
             }
             
-            // 如果没有从标签中找到标题，尝试从页面内容中提取
-            if (!metadata.title) {
-                const h1 = document.querySelector('h1');
-                if (h1) metadata.title = h1.textContent.trim();
+            // 🎯 改进的标题提取逻辑 - 特别针对预印本网站
+            if (!metadata.title || metadata.title === document.title) {
+                const url = window.location.href.toLowerCase();
+                let foundTitle = false;
+                
+                // bioRxiv/medRxiv特殊处理
+                if (url.includes('biorxiv.org') || url.includes('medrxiv.org')) {
+                    const titleSelectors = [
+                        'h1.highwire-cite-title',
+                        'h1[id="page-title"]',
+                        'h1.article-title', 
+                        '.article-title h1',
+                        'div[id="papertitle"]',
+                        '.hw-article-title',
+                        'h1[property="name"]'
+                    ];
+                    
+                    for (const selector of titleSelectors) {
+                        const titleEl = document.querySelector(selector);
+                        if (titleEl) {
+                            const title = titleEl.textContent.trim();
+                            if (title && title.length > 15 && !title.toLowerCase().includes('preprint') && !title.toLowerCase().includes('version')) {
+                                metadata.title = title;
+                                foundTitle = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // ChemRxiv特殊处理
+                else if (url.includes('chemrxiv.org')) {
+                    const titleSelectors = [
+                        'h1[data-testid="article-title"]',
+                        '.article-header h1',
+                        '.manuscript-title h1',
+                        'h1.manuscript-title',
+                        '.article-title',
+                        'h1'
+                    ];
+                    
+                    for (const selector of titleSelectors) {
+                        const titleEl = document.querySelector(selector);
+                        if (titleEl) {
+                            const title = titleEl.textContent.trim();
+                            if (title && title.length > 15) {
+                                metadata.title = title;
+                                foundTitle = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // 通用H1标签处理（如果上面的特殊处理没有找到）
+                if (!foundTitle) {
+                    const h1Elements = document.querySelectorAll('h1');
+                    for (const h1 of h1Elements) {
+                        const title = h1.textContent.trim();
+                        // 过滤掉明显的导航或无意义标题
+                        if (title && title.length > 15 && 
+                            !title.toLowerCase().includes('menu') && 
+                            !title.toLowerCase().includes('navigation') &&
+                            !title.toLowerCase().includes('login') &&
+                            !title.toLowerCase().includes('search')) {
+                            metadata.title = title;
+                            foundTitle = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // 最后的回退：清理document.title
+                if (!foundTitle && document.title) {
+                    let title = document.title.trim();
+                    // 移除网站名称等常见后缀
+                    title = title.replace(/ - bioRxiv$/i, '');
+                    title = title.replace(/ - medRxiv$/i, '');
+                    title = title.replace(/ - ChemRxiv$/i, '');
+                    title = title.replace(/ \| .*$/i, '');
+                    title = title.replace(/ - .*$/i, '');
+                    
+                    if (title.length > 15) {
+                        metadata.title = title;
+                    }
+                }
+            }
+            
+            // 清理最终标题
+            if (metadata.title) {
+                metadata.title = metadata.title.replace(/\s+/g, ' ').trim();
+                metadata.title = metadata.title.replace(/^[-–—]\s*/, '');
+                metadata.title = metadata.title.replace(/\s*[-–—]\s*$/, '');
             }
             
             return metadata;
