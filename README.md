@@ -81,7 +81,23 @@ python run_server.py
 
 ### MCP Integration (Claude Desktop)
 
-**Recommended configuration** (with Zotero paths):
+**Recommended configuration** (simple - just specify Zotero directory):
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "/path/to/zotlink",
+      "args": [],
+      "env": {
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
+      }
+    }
+  }
+}
+```
+
+**Advanced configuration** (specify paths separately):
 
 ```json
 {
@@ -117,8 +133,7 @@ python run_server.py
       "command": "/full/path/to/python",
       "args": ["-m", "zotlink.zotero_mcp_server"],
       "env": {
-        "ZOTLINK_ZOTERO_DB": "/Users/yourname/Zotero/zotero.sqlite",
-        "ZOTLINK_ZOTERO_DIR": "/Users/yourname/Zotero/storage"
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
       }
     }
   }
@@ -181,6 +196,18 @@ You can override the local Zotero database path and storage dir. Precedence: ENV
 
 1) Environment variables (highest priority)
 
+**Recommended - Single directory**:
+- macOS/Linux (bash/zsh)
+```bash
+export ZOTLINK_ZOTERO_ROOT=/Users/yourname/Zotero
+```
+
+- Windows (PowerShell)
+```powershell
+$env:ZOTLINK_ZOTERO_ROOT='C:\\Users\\YourName\\Zotero'
+```
+
+**Advanced - Separate paths** (backward compatibility):
 - macOS/Linux (bash/zsh)
 ```bash
 export ZOTLINK_ZOTERO_DB=/Users/yourname/Zotero/zotero.sqlite

@@ -82,7 +82,23 @@ python run_server.py
 
 ### MCP 集成（Claude Desktop）
 
-**推荐配置**（包含Zotero路径）：
+**推荐配置**（简单 - 只需指定Zotero目录）：
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "/path/to/zotlink",
+      "args": [],
+      "env": {
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
+      }
+    }
+  }
+}
+```
+
+**高级配置**（分别指定路径）：
 
 ```json
 {
@@ -118,8 +134,7 @@ python run_server.py
       "command": "/full/path/to/python",
       "args": ["-m", "zotlink.zotero_mcp_server"],
       "env": {
-        "ZOTLINK_ZOTERO_DB": "/Users/yourname/Zotero/zotero.sqlite",
-        "ZOTLINK_ZOTERO_DIR": "/Users/yourname/Zotero/storage"
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
       }
     }
   }
@@ -182,6 +197,18 @@ sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libdrm2 libxkbcom
 
 1) 环境变量（最高优先级）
 
+**推荐方式 - 单目录**：
+- macOS/Linux（bash/zsh）
+```bash
+export ZOTLINK_ZOTERO_ROOT=/Users/yourname/Zotero
+```
+
+- Windows（PowerShell）
+```powershell
+$env:ZOTLINK_ZOTERO_ROOT='C:\\Users\\YourName\\Zotero'
+```
+
+**高级方式 - 分别指定**（向后兼容）：
 - macOS/Linux（bash/zsh）
 ```bash
 export ZOTLINK_ZOTERO_DB=/Users/yourname/Zotero/zotero.sqlite

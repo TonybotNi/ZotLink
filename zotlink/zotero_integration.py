@@ -70,13 +70,36 @@ class ZoteroConnector:
         """从环境变量与配置文件加载Zotero路径覆盖设置。
         优先级：环境变量 > Claude配置 > 本地配置文件 > 默认探测
         支持：
-          - 环境变量 ZOTLINK_ZOTERO_DB 指定数据库完整路径
-          - 环境变量 ZOTLINK_ZOTERO_DIR 指定storage目录（可选）
-          - 通过MCP环境变量传递的配置（推荐）
+          - 环境变量 ZOTLINK_ZOTERO_ROOT 指定Zotero根目录（推荐，自动推导数据库和存储路径）
+          - 环境变量 ZOTLINK_ZOTERO_DB 指定数据库完整路径（向后兼容）
+          - 环境变量 ZOTLINK_ZOTERO_DIR 指定storage目录（向后兼容）
+          - 通过MCP环境变量传递的配置
           - 配置文件 ~/.zotlink/config.json 中的 zotero.database_path / zotero.storage_dir
         """
         try:
-            # 环境变量优先
+            # 1. 首先检查是否设置了Zotero根目录（推荐方式）
+            env_root = os.environ.get('ZOTLINK_ZOTERO_ROOT', '').strip()
+            if env_root:
+                root_path = Path(os.path.expanduser(env_root))
+                if root_path.exists():
+                    # 自动推导数据库和存储路径
+                    candidate_db = root_path / "zotero.sqlite"
+                    candidate_storage = root_path / "storage"
+                    
+                    if candidate_db.exists():
+                        self._zotero_db_override = candidate_db
+                        logger.info(f"🔧 从Zotero根目录自动推导数据库路径: {candidate_db}")
+                    
+                    if candidate_storage.exists():
+                        self._zotero_storage_dir = candidate_storage
+                        logger.info(f"🔧 从Zotero根目录自动推导存储目录: {candidate_storage}")
+                    
+                    if not candidate_db.exists() and not candidate_storage.exists():
+                        logger.warning(f"⚠️ Zotero根目录 {root_path} 下未找到预期的数据库或存储目录")
+                else:
+                    logger.warning(f"⚠️ 环境变量ZOTLINK_ZOTERO_ROOT目录不存在: {root_path}")
+            
+            # 2. 环境变量优先（向后兼容，会覆盖根目录推导的结果）
             env_db = os.environ.get('ZOTLINK_ZOTERO_DB', '').strip()
             if env_db:
                 candidate = Path(os.path.expanduser(env_db))
@@ -85,6 +108,7 @@ class ZoteroConnector:
                     logger.info(f"🔧 使用环境变量ZOTLINK_ZOTERO_DB覆盖Zotero数据库路径: {candidate}")
                 else:
                     logger.warning(f"⚠️ 环境变量ZOTLINK_ZOTERO_DB路径不存在: {candidate}")
+            
             env_storage = os.environ.get('ZOTLINK_ZOTERO_DIR', '').strip()
             if env_storage:
                 storage_path = Path(os.path.expanduser(env_storage))
