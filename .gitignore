@@ -118,5 +118,41 @@ cython_debug/
 # Logs
 *.log
 .DS_Store
-reports
-archive
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Project specific
+config/
+cookies.json*
+working_cookies.json
+nature_cookies.txt
+shared_cookies_*.json
+saved_cookies.json
+.cookies.json
+
+# Development reports (too many, keep only essential docs)
+docs/reports/
+
+# Temporary files
+latest_bookmark.js
+*.bak
+*.old
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# User data
+~/.zotlink/

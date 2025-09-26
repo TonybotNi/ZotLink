@@ -68,10 +68,11 @@ class ZoteroConnector:
 
     def _load_config_overrides(self) -> None:
         """从环境变量与配置文件加载Zotero路径覆盖设置。
-        优先级：环境变量 > 配置文件 > 默认探测
+        优先级：环境变量 > Claude配置 > 本地配置文件 > 默认探测
         支持：
           - 环境变量 ZOTLINK_ZOTERO_DB 指定数据库完整路径
           - 环境变量 ZOTLINK_ZOTERO_DIR 指定storage目录（可选）
+          - Claude配置文件中的 zotero_database_path / zotero_storage_dir
           - 配置文件 ~/.zotlink/config.json 中的 zotero.database_path / zotero.storage_dir
         """
         try:
@@ -93,7 +94,10 @@ class ZoteroConnector:
                 else:
                     logger.warning(f"⚠️ 环境变量ZOTLINK_ZOTERO_DIR目录不存在: {storage_path}")
 
-            # 配置文件（若未通过环境变量设定）
+            # Claude配置文件（若未通过环境变量设定）
+            self._load_claude_config()
+
+            # 本地配置文件（若前面方式都未设定）
             config_file = Path.home() / '.zotlink' / 'config.json'
             if config_file.exists():
                 try:
@@ -124,6 +128,60 @@ class ZoteroConnector:
                     logger.warning(f"⚠️ 读取配置文件失败: {e}")
         except Exception as e:
             logger.warning(f"⚠️ 加载Zotero路径覆盖设置失败: {e}")
+
+    def _load_claude_config(self) -> None:
+        """从Claude配置文件加载Zotero路径设置。
+        支持macOS/Linux和Windows的Claude配置路径。
+        """
+        try:
+            # Claude配置文件路径（支持多平台）
+            claude_config_paths = [
+                Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",  # macOS
+                Path.home() / ".config" / "claude" / "claude_desktop_config.json",                          # Linux
+                Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"              # Windows
+            ]
+            
+            for config_path in claude_config_paths:
+                if config_path.exists():
+                    try:
+                        with open(config_path, 'r', encoding='utf-8') as f:
+                            claude_config = json.load(f)
+                        
+                        # 查找zotlink服务器配置
+                        mcp_servers = claude_config.get('mcpServers', {})
+                        zotlink_config = mcp_servers.get('zotlink', {})
+                        
+                        # 检查数据库路径配置
+                        if not self._zotero_db_override:
+                            db_path = zotlink_config.get('zotero_database_path', '').strip()
+                            if db_path:
+                                candidate_db = Path(os.path.expanduser(db_path))
+                                if candidate_db.exists():
+                                    self._zotero_db_override = candidate_db
+                                    logger.info(f"🔧 使用Claude配置指定Zotero数据库路径: {candidate_db}")
+                                else:
+                                    logger.warning(f"⚠️ Claude配置中zotero_database_path不存在: {candidate_db}")
+                        
+                        # 检查存储目录配置
+                        if not self._zotero_storage_dir:
+                            storage_dir = zotlink_config.get('zotero_storage_dir', '').strip()
+                            if storage_dir:
+                                candidate_storage = Path(os.path.expanduser(storage_dir))
+                                if candidate_storage.exists():
+                                    self._zotero_storage_dir = candidate_storage
+                                    logger.info(f"🔧 使用Claude配置指定storage目录: {candidate_storage}")
+                                else:
+                                    logger.warning(f"⚠️ Claude配置中zotero_storage_dir不存在: {candidate_storage}")
+                        
+                        # 找到配置文件就退出循环
+                        logger.debug(f"📖 读取Claude配置文件: {config_path}")
+                        break
+                        
+                    except Exception as e:
+                        logger.warning(f"⚠️ 读取Claude配置文件失败 {config_path}: {e}")
+                        
+        except Exception as e:
+            logger.warning(f"⚠️ 加载Claude配置失败: {e}")
     
     def _extract_arxiv_metadata(self, arxiv_url: str) -> Dict:
         """从arxiv URL提取详细的论文元数据"""
@@ -1877,10 +1935,11 @@ class ZoteroConnector:
     def load_cookies_from_files(self) -> Dict[str, bool]:
         """
         从文件加载所有可用的cookies
-        支持三种格式：
-        1. cookies.json (主配置文件，多数据库)
-        2. shared_cookies_*.json (书签同步)
-        3. nature_cookies.txt (向后兼容)
+        支持多种格式和位置：
+        1. ~/.zotlink/cookies.json (推荐位置，多数据库)
+        2. 项目根目录/cookies.json (向后兼容)
+        3. shared_cookies_*.json (书签同步)
+        4. ~/.zotlink/nature_cookies.txt (向后兼容)
         
         Returns:
             Dict[str, bool]: 每个数据库的加载状态
@@ -1890,14 +1949,29 @@ class ZoteroConnector:
         import time
         from datetime import datetime, timezone
         
-        project_root = Path(__file__).parent.parent
         results = {}
+        # 优先级：用户配置目录 > 项目根目录
+        user_config_dir = Path.home() / '.zotlink'
+        project_root = Path(__file__).parent.parent
+        
+        # 确保用户配置目录存在
+        user_config_dir.mkdir(exist_ok=True)
         
         logger.info("🔍 正在扫描cookie文件...")
         
-        # 1. 优先加载cookies.json（主配置文件）
-        json_config_file = project_root / "cookies.json"
-        if json_config_file.exists():
+        # 1. 优先加载cookies.json（主配置文件）- 优先从用户配置目录加载
+        json_config_paths = [
+            user_config_dir / "cookies.json",  # 推荐位置
+            project_root / "cookies.json"      # 向后兼容
+        ]
+        
+        json_config_file = None
+        for path in json_config_paths:
+            if path.exists():
+                json_config_file = path
+                break
+        
+        if json_config_file:
             logger.info(f"📁 找到主Cookie配置文件: {json_config_file}")
             try:
                 with open(json_config_file, 'r', encoding='utf-8') as f:
@@ -1934,9 +2008,19 @@ class ZoteroConnector:
                 logger.error(f"❌ 读取cookies.json失败：{e}")
                 results['json_config'] = False
         
-        # 2. 兼容性支持：检查nature_cookies.txt文件
-        txt_cookie_file = project_root / "nature_cookies.txt"
-        if txt_cookie_file.exists():
+        # 2. 兼容性支持：检查nature_cookies.txt文件 - 优先从用户配置目录加载
+        txt_cookie_paths = [
+            user_config_dir / "nature_cookies.txt",  # 推荐位置
+            project_root / "nature_cookies.txt"      # 向后兼容
+        ]
+        
+        txt_cookie_file = None
+        for path in txt_cookie_paths:
+            if path.exists():
+                txt_cookie_file = path
+                break
+                
+        if txt_cookie_file:
             logger.info(f"📁 找到兼容性TXT文件: {txt_cookie_file}")
             try:
                 with open(txt_cookie_file, 'r', encoding='utf-8') as f:
@@ -2038,8 +2122,25 @@ class ZoteroConnector:
         from pathlib import Path
         from datetime import datetime, timezone
         
+        # 优先级：用户配置目录 > 项目根目录
+        user_config_dir = Path.home() / '.zotlink'
         project_root = Path(__file__).parent.parent
-        json_config_file = project_root / "cookies.json"
+        
+        json_config_paths = [
+            user_config_dir / "cookies.json",  # 推荐位置
+            project_root / "cookies.json"      # 向后兼容
+        ]
+        
+        json_config_file = None
+        for path in json_config_paths:
+            if path.exists():
+                json_config_file = path
+                break
+        
+        # 如果都不存在，使用推荐位置创建新文件
+        if not json_config_file:
+            user_config_dir.mkdir(exist_ok=True)
+            json_config_file = user_config_dir / "cookies.json"
         
         try:
             # 读取现有配置
@@ -2096,8 +2197,25 @@ class ZoteroConnector:
         import json
         from pathlib import Path
         
+        # 优先级：用户配置目录 > 项目根目录
+        user_config_dir = Path.home() / '.zotlink'
         project_root = Path(__file__).parent.parent
-        json_config_file = project_root / "cookies.json"
+        
+        json_config_paths = [
+            user_config_dir / "cookies.json",  # 推荐位置
+            project_root / "cookies.json"      # 向后兼容
+        ]
+        
+        json_config_file = None
+        for path in json_config_paths:
+            if path.exists():
+                json_config_file = path
+                break
+        
+        # 如果都不存在，使用推荐位置创建新文件
+        if not json_config_file:
+            user_config_dir.mkdir(exist_ok=True)
+            json_config_file = user_config_dir / "cookies.json"
         
         try:
             if not json_config_file.exists():

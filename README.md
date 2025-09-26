@@ -37,9 +37,9 @@ A lightweight, production-ready MCP server that brings open scholarly sources in
 
 ### Install
 
-**Base install**
+**Install from PyPI (recommended)**
 ```bash
-pip install .
+pip install zotlink
 ```
 
 **Dev + browser support (extras)**
@@ -149,7 +149,7 @@ The server will switch to a browser strategy automatically when needed.
 
 ### Optional: Custom Zotero Paths (DB/Storage)
 
-You can override the local Zotero database path and storage dir. Precedence: ENV vars > config file > defaults.
+You can override the local Zotero database path and storage dir. Precedence: ENV vars > Claude config > local config file > defaults.
 
 1) Environment variables (highest priority)
 
@@ -165,7 +165,29 @@ $env:ZOTLINK_ZOTERO_DB='C:\\Users\\YourName\\Zotero\\zotero.sqlite'
 $env:ZOTLINK_ZOTERO_DIR='C:\\Users\\YourName\\Zotero\\storage'
 ```
 
-2) Config file (fallback)
+2) Claude configuration (recommended for MCP users)
+
+Add Zotero paths directly to your Claude configuration file:
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "path/to/zotlink",
+      "args": [],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+    }
+  }
+}
+```
+
+Claude config file locations:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
+
+3) Local config file (traditional method)
 
 Create `~/.zotlink/config.json`:
 ```json

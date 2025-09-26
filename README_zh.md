@@ -38,9 +38,9 @@
 
 ### 安装
 
-**基础安装**
+**从PyPI安装（推荐）**
 ```bash
-pip install .
+pip install zotlink
 ```
 
 **开发 + 浏览器支持（extras）**
@@ -150,7 +150,7 @@ sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libdrm2 libxkbcom
 
 ### 可选：自定义 Zotero 路径（数据库/存储目录）
 
-支持两种方式，优先级：环境变量 > 配置文件 > 默认探测。
+支持多种配置方式，优先级：环境变量 > Claude配置 > 本地配置文件 > 默认探测。
 
 1) 环境变量（最高优先级）
 
@@ -166,7 +166,29 @@ $env:ZOTLINK_ZOTERO_DB='C:\\Users\\YourName\\Zotero\\zotero.sqlite'
 $env:ZOTLINK_ZOTERO_DIR='C:\\Users\\YourName\\Zotero\\storage'
 ```
 
-2) 配置文件（次优先级）
+2) Claude 配置文件（推荐，适合MCP用户）
+
+直接在 Claude 配置文件中添加 Zotero 路径，无需额外配置文件：
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "path/to/zotlink",
+      "args": [],
+      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
+      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
+    }
+  }
+}
+```
+
+Claude 配置文件位置：
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
+
+3) 本地配置文件（传统方式）
 
 在用户目录创建 `~/.zotlink/config.json`：
 ```json
