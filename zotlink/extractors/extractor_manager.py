@@ -80,11 +80,12 @@ class ExtractorManager:
             return False
             
         domain = urlparse(url).netloc.lower()
+        # 🎯 修复：移除有专门提取器的预印本网站，让专门提取器优先处理
         browser_domains = [
-            'biorxiv.org',
-            'medrxiv.org', 
-            'chemrxiv.org',
-            'psyarxiv.com',
+            # 'biorxiv.org',      # 有专门的BioRxivDirectExtractor
+            # 'medrxiv.org',      # 有专门的PreprintExtractor  
+            # 'chemrxiv.org',     # 有专门的PreprintExtractor
+            'psyarxiv.com',       # 保留没有专门提取器的网站
             'osf.io',
             'socarxiv.org'
         ]
@@ -97,14 +98,29 @@ class ExtractorManager:
     
     async def extract_metadata(self, url: str) -> Dict[str, Any]:
         """
-        提取论文元数据，优先使用浏览器模式处理反爬虫网站
+        提取论文元数据，优先尝试专门提取器，失败时使用浏览器模式
         """
-        # 检查是否需要使用浏览器模式
+        # 🎯 关键修复：先尝试HTTP专门提取器，失败时再用浏览器模式
+        logger.info(f"🔍 开始提取元数据: {url}")
+        
+        # 首先尝试HTTP提取器（包括专门的提取器）
+        http_result = self._extract_with_http(url)
+        
+        # 检查HTTP提取是否成功且有标题
+        if (http_result and 
+            not http_result.get('error') and 
+            http_result.get('title') and 
+            http_result.get('title').strip()):
+            logger.info(f"✅ HTTP提取器成功提取: {http_result.get('extractor', 'Unknown')}")
+            return http_result
+        
+        # 如果HTTP提取失败或标题为空，且支持浏览器模式，则使用浏览器提取
         if self._should_use_browser(url):
+            logger.info(f"⚠️ HTTP提取标题为空或失败，尝试浏览器模式: {url}")
             return await self._extract_with_browser(url)
         
-        # 使用HTTP提取器
-        return self._extract_with_http(url)
+        # 返回HTTP结果（即使可能不完整）
+        return http_result
     
     async def _extract_with_browser(self, url: str) -> Dict[str, Any]:
         """使用浏览器提取器"""
