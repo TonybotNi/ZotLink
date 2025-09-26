@@ -446,7 +446,9 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
                         arxiv_id = arxiv_match.group(2)
                         message += f"📄 **论文类型**: arXiv预印本\n"
                         message += f"🏷️ **arXiv ID**: {arxiv_id}\n"
-                        message += f"📄 **标题**: {paper_title or f'arXiv:{arxiv_id} (标题提取中...)'}\n"
+                        # 🎯 优先使用返回结果中的标题，如果没有则使用原始标题
+                        actual_title = result.get('title') or paper_title or f'arXiv:{arxiv_id} (标题提取中...)'
+                        message += f"📄 **标题**: {actual_title}\n"
                         message += f"🔗 **原始链接**: {paper_url}\n"
                         message += f"📥 **PDF链接**: https://arxiv.org/pdf/{arxiv_id}.pdf\n"
                 elif database and database != 'arXiv':

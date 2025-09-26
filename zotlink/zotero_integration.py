@@ -1277,6 +1277,8 @@ class ZoteroConnector:
             result = {
                 "success": True,
                 "message": "论文已成功保存" + ("，PDF附件已添加" if pdf_attachment_success else ""),
+                "title": enhanced_paper_info.get('title', ''),  # 🎯 关键修复：返回正确的标题
+                "paper_info": enhanced_paper_info,  # 返回完整的论文信息
                 "details": {
                     "metadata_saved": True,
                     "collection_moved": collection_move_success,
