@@ -467,146 +467,6 @@ class BrowserExtractor(BaseExtractor):
                 
                 # 执行JavaScript来提取元数据和PDF链接
                 metadata = await page.evaluate(extractor_instance._get_extraction_script())
-                logger.info(f"🔍 初始提取结果: title='{metadata.get('title', 'None')}', authors='{metadata.get('authors', 'None')[:50] if metadata.get('authors') else 'None'}...')")
-                
-                # 🎯 强制调试：如果标题为空，尝试更激进的提取
-                if not metadata.get('title') or not metadata.get('title').strip():
-                    logger.warning(f"⚠️ 初次提取标题为空，执行强化提取: {url}")
-                    
-                    # 尝试更激进的标题提取
-                    enhanced_title = await page.evaluate("""
-                        () => {
-                            // 更全面的标题提取策略
-                            const strategies = [
-                                // Citation 元数据
-                                () => {
-                                    const meta = document.querySelector('meta[name="citation_title"]');
-                                    return meta ? meta.content : null;
-                                },
-                                // DC 元数据
-                                () => {
-                                    const meta = document.querySelector('meta[name="DC.title"]');
-                                    return meta ? meta.content : null;
-                                },
-                                // Open Graph
-                                () => {
-                                    const meta = document.querySelector('meta[property="og:title"]');
-                                    return meta ? meta.content : null;
-                                },
-                                // 预印本网站特殊选择器
-                                () => {
-                                    const url = window.location.href.toLowerCase();
-                                    if (url.includes('medrxiv.org') || url.includes('biorxiv.org')) {
-                                        const selectors = [
-                                            'h1.highwire-cite-title',
-                                            '#page-title',
-                                            'h1.article-title',
-                                            '.article-title h1',
-                                            '.hw-article-title',
-                                            'div[id="papertitle"]',
-                                            'h1[property="name"]'
-                                        ];
-                                        for (const sel of selectors) {
-                                            const el = document.querySelector(sel);
-                                            if (el && el.textContent.trim().length > 15) {
-                                                return el.textContent.trim();
-                                            }
-                                        }
-                                    }
-                                    return null;
-                                },
-                                // ChemRxiv特殊处理
-                                () => {
-                                    const url = window.location.href.toLowerCase();
-                                    if (url.includes('chemrxiv.org')) {
-                                        const selectors = [
-                                            'h1[data-testid="article-title"]',
-                                            '.article-header h1',
-                                            '.manuscript-title h1',
-                                            'h1.manuscript-title'
-                                        ];
-                                        for (const sel of selectors) {
-                                            const el = document.querySelector(sel);
-                                            if (el && el.textContent.trim().length > 15) {
-                                                return el.textContent.trim();
-                                            }
-                                        }
-                                    }
-                                    return null;
-                                },
-                                // 通用H1策略
-                                () => {
-                                    const h1s = document.querySelectorAll('h1');
-                                    for (const h1 of h1s) {
-                                        const text = h1.textContent.trim();
-                                        if (text.length > 20 && 
-                                            !text.toLowerCase().includes('menu') &&
-                                            !text.toLowerCase().includes('navigation') &&
-                                            !text.toLowerCase().includes('home') &&
-                                            !text.toLowerCase().includes('search')) {
-                                            return text;
-                                        }
-                                    }
-                                    return null;
-                                },
-                                // 清理后的document.title
-                                () => {
-                                    if (document.title) {
-                                        let title = document.title.trim();
-                                        title = title.replace(/ - medRxiv$/i, '');
-                                        title = title.replace(/ - bioRxiv$/i, ''); 
-                                        title = title.replace(/ - ChemRxiv$/i, '');
-                                        title = title.replace(/ \| .*$/i, '');
-                                        if (title.length > 20) return title;
-                                    }
-                                    return null;
-                                }
-                            ];
-                            
-                            for (let i = 0; i < strategies.length; i++) {
-                                try {
-                                    const result = strategies[i]();
-                                    if (result && result.trim().length > 10) {
-                                        console.log(`策略 ${i+1} 成功:`, result.substring(0, 50));
-                                        return result.trim();
-                                    }
-                                } catch (e) {
-                                    console.log(`策略 ${i+1} 失败:`, e);
-                                }
-                            }
-                            
-                            return '';
-                        }
-                    """)
-                    
-                    if enhanced_title and enhanced_title.strip():
-                        logger.info(f"✅ 强化提取成功获取标题: {enhanced_title[:50]}...")
-                        metadata['title'] = enhanced_title.strip()
-                    else:
-                        logger.error(f"❌ 所有标题提取策略都失败: {url}")
-                        # 最后的绝望尝试：直接从页面抓取任何看起来像标题的内容
-                        fallback_title = await page.evaluate("""
-                            () => {
-                                // 绝望的标题提取
-                                const allText = document.body.innerText || '';
-                                const lines = allText.split('\\n').map(line => line.trim()).filter(line => line.length > 20 && line.length < 200);
-                                
-                                for (const line of lines.slice(0, 10)) { // 只检查前10行
-                                    if (!line.toLowerCase().includes('menu') && 
-                                        !line.toLowerCase().includes('search') &&
-                                        !line.toLowerCase().includes('login') &&
-                                        !line.toLowerCase().includes('copyright')) {
-                                        return line;
-                                    }
-                                }
-                                return '';
-                            }
-                        """)
-                        if fallback_title and fallback_title.strip():
-                            logger.warning(f"🆘 绝望提取成功: {fallback_title[:50]}...")
-                            metadata['title'] = fallback_title.strip()
-                        else:
-                            logger.error(f"💀 完全无法提取标题: {url}")
                 
                 # 识别域名类型
                 domain_info = extractor_instance._identify_domain(url)
@@ -647,16 +507,12 @@ class BrowserExtractor(BaseExtractor):
         () => {
             const metadata = {};
             
-            // 🎯 优先提取citation_title（最可靠的标题来源）
-            const citationTitleMeta = document.querySelector('meta[name="citation_title"]');
-            if (citationTitleMeta && citationTitleMeta.content) {
-                metadata.title = citationTitleMeta.content.trim();
-            } else {
-                metadata.title = document.title || '';
-            }
+            // 提取基本元数据
+            metadata.title = document.title || '';
             
-            // 提取其他citation标签
+            // 提取citation标签
             const citationFields = {
+                'citation_title': 'title',
                 'citation_author': 'authors',
                 'citation_date': 'date',
                 'citation_publication_date': 'date',
@@ -674,7 +530,7 @@ class BrowserExtractor(BaseExtractor):
                 if (elements.length > 0) {
                     if (citationField === 'citation_author') {
                         metadata.authors = Array.from(elements).map(el => el.content).join('; ');
-                    } else if (!metadata[metaField]) {  // 避免覆盖已设置的值
+                    } else {
                         metadata[metaField] = elements[0].content;
                     }
                 }
@@ -732,99 +588,10 @@ class BrowserExtractor(BaseExtractor):
                 }
             }
             
-            // 🎯 改进的标题提取逻辑 - 特别针对预印本网站
-            if (!metadata.title || metadata.title === document.title) {
-                const url = window.location.href.toLowerCase();
-                let foundTitle = false;
-                
-                // bioRxiv/medRxiv特殊处理
-                if (url.includes('biorxiv.org') || url.includes('medrxiv.org')) {
-                    const titleSelectors = [
-                        'h1.highwire-cite-title',
-                        'h1[id="page-title"]',
-                        'h1.article-title', 
-                        '.article-title h1',
-                        'div[id="papertitle"]',
-                        '.hw-article-title',
-                        'h1[property="name"]'
-                    ];
-                    
-                    for (const selector of titleSelectors) {
-                        const titleEl = document.querySelector(selector);
-                        if (titleEl) {
-                            const title = titleEl.textContent.trim();
-                            if (title && title.length > 15 && !title.toLowerCase().includes('preprint') && !title.toLowerCase().includes('version')) {
-                                metadata.title = title;
-                                foundTitle = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // ChemRxiv特殊处理
-                else if (url.includes('chemrxiv.org')) {
-                    const titleSelectors = [
-                        'h1[data-testid="article-title"]',
-                        '.article-header h1',
-                        '.manuscript-title h1',
-                        'h1.manuscript-title',
-                        '.article-title',
-                        'h1'
-                    ];
-                    
-                    for (const selector of titleSelectors) {
-                        const titleEl = document.querySelector(selector);
-                        if (titleEl) {
-                            const title = titleEl.textContent.trim();
-                            if (title && title.length > 15) {
-                                metadata.title = title;
-                                foundTitle = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // 通用H1标签处理（如果上面的特殊处理没有找到）
-                if (!foundTitle) {
-                    const h1Elements = document.querySelectorAll('h1');
-                    for (const h1 of h1Elements) {
-                        const title = h1.textContent.trim();
-                        // 过滤掉明显的导航或无意义标题
-                        if (title && title.length > 15 && 
-                            !title.toLowerCase().includes('menu') && 
-                            !title.toLowerCase().includes('navigation') &&
-                            !title.toLowerCase().includes('login') &&
-                            !title.toLowerCase().includes('search')) {
-                            metadata.title = title;
-                            foundTitle = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // 最后的回退：清理document.title
-                if (!foundTitle && document.title) {
-                    let title = document.title.trim();
-                    // 移除网站名称等常见后缀
-                    title = title.replace(/ - bioRxiv$/i, '');
-                    title = title.replace(/ - medRxiv$/i, '');
-                    title = title.replace(/ - ChemRxiv$/i, '');
-                    title = title.replace(/ \| .*$/i, '');
-                    title = title.replace(/ - .*$/i, '');
-                    
-                    if (title.length > 15) {
-                        metadata.title = title;
-                    }
-                }
-            }
-            
-            // 清理最终标题
-            if (metadata.title) {
-                metadata.title = metadata.title.replace(/\s+/g, ' ').trim();
-                metadata.title = metadata.title.replace(/^[-–—]\s*/, '');
-                metadata.title = metadata.title.replace(/\s*[-–—]\s*$/, '');
+            // 如果没有从标签中找到标题，尝试从页面内容中提取
+            if (!metadata.title) {
+                const h1 = document.querySelector('h1');
+                if (h1) metadata.title = h1.textContent.trim();
             }
             
             return metadata;
