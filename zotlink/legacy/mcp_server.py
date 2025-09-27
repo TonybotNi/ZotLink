@@ -824,6 +824,20 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[TextCon
             if result["success"]:
                 message = f"🎉 **成功保存到Zotero!**\n\n"
                 
+                # 显示使用的数据库 - 优先使用真实数据库名称
+                source = result.get("source", "")
+                database = result.get("database", "未知")
+                
+                # 🎯 优先显示真实数据库名称而非提取器名称
+                display_database = source or database
+                if display_database == "Browser-Driven":
+                    display_database = "未知数据库"
+                
+                enhanced = result.get("enhanced", False)
+                
+                message += f"🔗 **数据库**: {display_database}\n"
+                message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n\n"
+                
                 # 检查是否是arxiv论文并提供更详细信息
                 if 'arxiv.org' in paper_url:
                     message += f"📄 **论文类型**: arXiv预印本\n"
@@ -840,6 +854,18 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[TextCon
                         message += f"🔗 **摘要页面**: https://arxiv.org/abs/{arxiv_id}\n"
                         message += f"📥 **PDF链接**: https://arxiv.org/pdf/{arxiv_id}.pdf\n"
                 else:
+                    # 🎯 根据itemType和source确定论文类型
+                    item_type = result.get('itemType', '')
+                    paper_type = "期刊文章"
+                    
+                    if item_type == 'preprint' or source in ['bioRxiv', 'medRxiv', 'ChemRxiv', 'PsyArXiv']:
+                        paper_type = "预印本"
+                    elif source:
+                        paper_type = f"{source}论文"
+                    elif display_database != "未知数据库":
+                        paper_type = f"{display_database}期刊文章"
+                    
+                    message += f"📄 **论文类型**: {paper_type}\n"
                     # 🎯 修复：优先使用返回结果中的标题，而非空的paper_title
                     actual_title = result.get('title') or paper_title or '标题提取中...'
                     message += f"📄 **标题**: {actual_title}\n"
