@@ -822,28 +822,21 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[TextCon
             result = zotero_connector.save_item_to_zotero(paper_info, collection_key=collection_key)
             
             if result["success"]:
-                message = f"🎉 **成功保存到Zotero!**\n\n"
+                message = f"🎉 **论文保存成功！**\n\n"
                 
-                # 显示使用的数据库 - 优先使用真实数据库名称
-                source = result.get("source", "")
+                # 显示使用的数据库
                 database = result.get("database", "未知")
-                
-                # 🎯 优先显示真实数据库名称而非提取器名称
-                display_database = source or database
-                if display_database == "Browser-Driven":
-                    display_database = "未知数据库"
-                
                 enhanced = result.get("enhanced", False)
                 
-                message += f"🔗 **数据库**: {display_database}\n"
-                message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n\n"
+                # 🎯 根据URL检测论文来源和类型
+                import re
                 
-                # 检查是否是arxiv论文并提供更详细信息
+                # arXiv论文特殊处理
                 if 'arxiv.org' in paper_url:
+                    message += f"🔗 **数据库**: arXiv\n"
+                    message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n"
                     message += f"📄 **论文类型**: arXiv预印本\n"
                     
-                    # 尝试从URL提取arxiv ID
-                    import re
                     arxiv_match = re.search(r'arxiv\.org/(abs|pdf)/([^/?]+)', paper_url)
                     if arxiv_match:
                         arxiv_id = arxiv_match.group(2)
@@ -853,19 +846,37 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> list[TextCon
                         message += f"📄 **标题**: {actual_title}\n"
                         message += f"🔗 **摘要页面**: https://arxiv.org/abs/{arxiv_id}\n"
                         message += f"📥 **PDF链接**: https://arxiv.org/pdf/{arxiv_id}.pdf\n"
+                        
+                # bioRxiv论文处理  
+                elif 'biorxiv.org' in paper_url.lower():
+                    message += f"🔗 **数据库**: bioRxiv\n"
+                    message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n"
+                    message += f"📄 **论文类型**: bioRxiv预印本\n"
+                    actual_title = result.get('title') or paper_title or '标题提取中...'
+                    message += f"📄 **标题**: {actual_title}\n"
+                    message += f"🔗 **原始链接**: {paper_url}\n"
+                    
+                # medRxiv论文处理
+                elif 'medrxiv.org' in paper_url.lower():
+                    message += f"🔗 **数据库**: medRxiv\n"
+                    message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n"
+                    message += f"📄 **论文类型**: medRxiv预印本\n"
+                    actual_title = result.get('title') or paper_title or '标题提取中...'
+                    message += f"📄 **标题**: {actual_title}\n"
+                    message += f"🔗 **原始链接**: {paper_url}\n"
+                    
+                # chemRxiv论文处理
+                elif 'chemrxiv.org' in paper_url.lower():
+                    message += f"🔗 **数据库**: ChemRxiv\n"
+                    message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n"
+                    message += f"📄 **论文类型**: ChemRxiv预印本\n"
+                    actual_title = result.get('title') or paper_title or '标题提取中...'
+                    message += f"📄 **标题**: {actual_title}\n"
+                    message += f"🔗 **原始链接**: {paper_url}\n"
+                    
                 else:
-                    # 🎯 根据itemType和source确定论文类型
-                    item_type = result.get('itemType', '')
-                    paper_type = "期刊文章"
-                    
-                    if item_type == 'preprint' or source in ['bioRxiv', 'medRxiv', 'ChemRxiv', 'PsyArXiv']:
-                        paper_type = "预印本"
-                    elif source:
-                        paper_type = f"{source}论文"
-                    elif display_database != "未知数据库":
-                        paper_type = f"{display_database}期刊文章"
-                    
-                    message += f"📄 **论文类型**: {paper_type}\n"
+                    message += f"🔗 **数据库**: {database}\n"
+                    message += f"🤖 **智能增强**: {'✅ 是' if enhanced else '➖ 否'}\n"
                     # 🎯 修复：优先使用返回结果中的标题，而非空的paper_title
                     actual_title = result.get('title') or paper_title or '标题提取中...'
                     message += f"📄 **标题**: {actual_title}\n"
