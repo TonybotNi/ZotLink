@@ -588,10 +588,60 @@ class BrowserExtractor(BaseExtractor):
                 }
             }
             
-            // 如果没有从标签中找到标题，尝试从页面内容中提取
+            // 🎯 增强标题提取逻辑 - 针对预印本网站
             if (!metadata.title) {
-                const h1 = document.querySelector('h1');
-                if (h1) metadata.title = h1.textContent.trim();
+                // 针对bioRxiv/medRxiv的特殊选择器
+                const titleSelectors = [
+                    'h1.highwire-cite-title',           // bioRxiv/medRxiv主标题
+                    'h1#page-title',                    // 页面标题
+                    'h1.article-title',                 // 文章标题
+                    '.article-title h1',                // 文章标题容器内的h1
+                    'h1.entry-title',                   // 条目标题
+                    '.paper-title h1',                  // 论文标题
+                    '.title h1',                        // 标题容器
+                    'h1',                               // 通用h1
+                    '.highwire-cite-title',             // 高线引用标题（非h1）
+                    '.article-title',                   // 文章标题（非h1）
+                    '.paper-title'                      // 论文标题（非h1）
+                ];
+                
+                for (const selector of titleSelectors) {
+                    const titleEl = document.querySelector(selector);
+                    if (titleEl) {
+                        let title = titleEl.textContent.trim();
+                        // 清理标题
+                        title = title.replace(/\s+/g, ' ');
+                        title = title.replace(/^\s*[-–]\s*/, ''); // 移除开头破折号
+                        if (title && title.length > 10) {
+                            metadata.title = title;
+                            console.log('🎯 浏览器提取器找到标题:', title, '使用选择器:', selector);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 🎯 针对chemRxiv的特殊处理
+            if (!metadata.title && window.location.hostname.includes('chemrxiv')) {
+                const chemSelectors = [
+                    '.article-title',
+                    '.paper-title', 
+                    '.manuscript-title',
+                    'h1[class*="title"]',
+                    '.content-title'
+                ];
+                
+                for (const selector of chemSelectors) {
+                    const titleEl = document.querySelector(selector);
+                    if (titleEl) {
+                        let title = titleEl.textContent.trim();
+                        if (title && title.length > 10) {
+                            metadata.title = title;
+                            console.log('🧪 ChemRxiv标题提取:', title);
+                            break;
+                        }
+                    }
+                }
             }
             
             return metadata;

@@ -97,42 +97,14 @@ class ExtractorManager:
     
     async def extract_metadata(self, url: str) -> Dict[str, Any]:
         """
-        提取论文元数据，优先使用专门提取器，失败时使用浏览器模式
+        提取论文元数据，优先使用浏览器模式处理反爬虫网站
         """
-        # 🎯 修复：首先尝试HTTP提取器（包含专门的提取器）
-        logger.info(f"🔍 开始提取元数据: {url}")
-        http_result = self._extract_with_http(url)
-        
-        # 🎯 检查HTTP提取是否成功且有标题
-        if (http_result and 
-            http_result.get('title') and 
-            http_result.get('title').strip() and
-            not http_result.get('error')):
-            
-            logger.info(f"✅ HTTP提取成功，标题: '{http_result.get('title')[:50]}...'")
-            return http_result
-        
-        # 🎯 如果HTTP提取失败或标题为空，且支持浏览器模式，则使用浏览器提取器
+        # 检查是否需要使用浏览器模式
         if self._should_use_browser(url):
-            logger.info(f"⚠️ HTTP提取标题为空，尝试浏览器模式: {url}")
-            browser_result = await self._extract_with_browser(url)
-            
-            # 如果浏览器提取到标题但HTTP有其他有用信息，可以合并
-            if (browser_result and browser_result.get('title') and 
-                http_result and not http_result.get('error')):
-                
-                # 合并结果：使用浏览器的标题，HTTP的其他信息
-                for field in ['pdf_url', 'pdf_content', 'extractor']:
-                    if http_result.get(field) and not browser_result.get(field):
-                        browser_result[field] = http_result[field]
-                        
-                browser_result['extractor'] = f"Browser+{http_result.get('extractor', 'HTTP')}"
-                logger.info(f"✅ 合并提取结果，使用浏览器标题: '{browser_result.get('title')[:50]}...'")
-            
-            return browser_result if browser_result else http_result
+            return await self._extract_with_browser(url)
         
-        # 没有浏览器模式支持，返回HTTP结果
-        return http_result if http_result else {"error": "提取失败"}
+        # 使用HTTP提取器
+        return self._extract_with_http(url)
     
     async def _extract_with_browser(self, url: str) -> Dict[str, Any]:
         """使用浏览器提取器"""
