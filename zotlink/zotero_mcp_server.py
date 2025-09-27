@@ -453,10 +453,14 @@ async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent
                         message += f"📥 **PDF链接**: https://arxiv.org/pdf/{arxiv_id}.pdf\n"
                 elif database and database != 'arXiv':
                     message += f"📄 **论文类型**: {database}期刊文章\n"
-                    message += f"📄 **标题**: {paper_title}\n"
+                    # 🎯 修复：优先使用返回结果中的标题，而非空的paper_title
+                    actual_title = result.get('title') or paper_title or '标题提取中...'
+                    message += f"📄 **标题**: {actual_title}\n"
                     message += f"🔗 **原始链接**: {paper_url}\n"
                 else:
-                    message += f"📄 **标题**: {paper_title}\n"
+                    # 🎯 修复：统一使用result.get('title')逻辑
+                    actual_title = result.get('title') or paper_title or '标题提取中...'
+                    message += f"📄 **标题**: {actual_title}\n"
                     message += f"🔗 **URL**: {paper_url}\n"
                 
                 # 集合保存状态
