@@ -461,12 +461,23 @@ class BrowserExtractor(BaseExtractor):
                 except:
                     logger.info("网络等待超时，继续处理")
                 
-                # 最终确认页面标题
-                final_title = await page.title()
-                logger.info(f"📄 最终页面标题: {final_title[:70]}...")
-                
-                # 执行JavaScript来提取元数据和PDF链接
-                metadata = await page.evaluate(extractor_instance._get_extraction_script())
+                # 🔧 Windows兼容性：增强页面稳定性检查
+                try:
+                    # 检查页面是否仍然有效
+                    if page.is_closed():
+                        logger.error("⚠️ 页面已关闭，无法继续提取")
+                        return {"error": "页面意外关闭"}
+                        
+                    # 最终确认页面标题
+                    final_title = await page.title()
+                    logger.info(f"📄 最终页面标题: {final_title[:70]}...")
+                    
+                    # 执行JavaScript来提取元数据和PDF链接
+                    metadata = await page.evaluate(extractor_instance._get_extraction_script())
+                except Exception as page_error:
+                    logger.error(f"⚠️ 页面操作失败: {page_error}")
+                    # Windows上常见的页面关闭错误，尝试重新获取
+                    return {"error": f"页面操作失败: {page_error}"}
                 
                 # 识别域名类型
                 domain_info = extractor_instance._identify_domain(url)
@@ -479,7 +490,13 @@ class BrowserExtractor(BaseExtractor):
                     metadata['pdf_url'] = pdf_url
                     logger.info(f"BrowserExtractor: 找到PDF链接 {pdf_url}")
                 
-                await page.close()
+                # 确保页面正常关闭
+                try:
+                    if not page.is_closed():
+                        await page.close()
+                except Exception:
+                    pass  # 忽略关闭错误
+                    
                 return metadata
              
         except PlaywrightTimeoutError:

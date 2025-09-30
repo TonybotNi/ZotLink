@@ -1254,6 +1254,28 @@ class ZoteroConnector:
                             logger.info("✅ PDF附件保存成功！")
                         else:
                             logger.warning(f"⚠️ PDF附件保存失败: {attachment_response.status_code}")
+                            logger.warning(f"⚠️ 响应内容: {attachment_response.text[:500]}")
+                            
+                            # 🔧 Windows兼容性：尝试备用方法
+                            if attachment_response.status_code == 500:
+                                logger.info("🔄 尝试备用PDF保存方法...")
+                                try:
+                                    # 方法2：使用基础的文件上传方式
+                                    files = {
+                                        'file': ('document.pdf', pdf_content, 'application/pdf')
+                                    }
+                                    backup_response = session.post(
+                                        f"{self.base_url}/connector/saveAttachment?sessionID={session_id}",
+                                        files=files,
+                                        timeout=30
+                                    )
+                                    if backup_response.status_code in [200, 201]:
+                                        pdf_attachment_success = True
+                                        logger.info("✅ 备用方法PDF保存成功！")
+                                    else:
+                                        logger.warning(f"⚠️ 备用方法也失败: {backup_response.status_code}")
+                                except Exception as backup_e:
+                                    logger.warning(f"⚠️ 备用方法异常: {backup_e}")
                     else:
                         logger.warning("⚠️ PDF内容下载失败")
                         
