@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="zotlink",
-    version="1.2.1",
+    version="1.3.0",
     description="ZotLink - 智能学术文献管理 MCP 服务器",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
@@ -26,14 +26,12 @@ setup(
         "python-mcp-server>=0.1.0",
         "requests>=2.31.0",
         "beautifulsoup4>=4.12.0",
-        "lxml>=4.9.0"
+        "lxml>=4.9.0",
+        "playwright>=1.40.0"
     ],
     extras_require={
         "advanced": [
             "pycryptodome>=3.19.0"
-        ],
-        "browser": [
-            "playwright>=1.40.0"
         ],
     },
     entry_points={

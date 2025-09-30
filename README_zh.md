@@ -42,25 +42,26 @@
 ```bash
 pip install zotlink
 ```
+*现已默认包含所有预印本服务器的完整浏览器支持！*
 
-**开发 + 浏览器支持（extras）**
+**开发安装**
 
 ***macOS（zsh）***
 ```bash
-pip install -e '.[browser]'
+pip install -e .
 ```
 
 ***Windows（CMD/PowerShell）***
 ```powershell
-pip install -e .[browser]
+pip install -e .
 ```
 
 ***Linux（bash）***
 ```bash
-pip install -e .[browser]
+pip install -e .
 ```
 
-需要 Python 3.10+。如需浏览器驱动提取（OSF/各类 rxiv 站点），请安装可选 extra 并执行：
+需要 Python 3.10+。现已默认包含浏览器驱动提取功能。安装后执行：
 
 ```bash
 python -m playwright install chromium
@@ -160,23 +161,23 @@ python run_server.py
 
 日志写入 `~/.zotlink/zotlink.log`。
 
-## 🌐 浏览器模式（可选）
+## 🌐 浏览器模式（已内置）
 
-bioRxiv 页面使用 Playwright 更稳定；其他来源默认使用 HTTP。启用方式：
+浏览器驱动提取现已默认包含！所有预印本服务器（bioRxiv、medRxiv、chemRxiv）自动工作。安装后初始化浏览器运行时：
 
-***macOS（zsh）*** — 安装 extras
+***macOS（zsh）*** — 开发安装
 ```bash
-pip install -e '.[browser]'
+pip install -e .
 ```
 
-***Windows（CMD/PowerShell）*** — 安装 extras
+***Windows（CMD/PowerShell）*** — 开发安装
 ```powershell
-pip install -e .[browser]
+pip install -e .
 ```
 
-***Linux（bash）*** — 安装 extras
+***Linux（bash）*** — 开发安装
 ```bash
-pip install -e .[browser]
+pip install -e .
 ```
 
 **安装浏览器运行时**
@@ -279,7 +280,7 @@ Claude 配置文件位置：
 ## 🧪 开发
 
 ```bash
-pip install -e '.[browser]'
+pip install -e .
 python -m playwright install chromium
 zotlink  # 或：python run_server.py
 ```

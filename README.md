@@ -41,25 +41,26 @@ A lightweight, production-ready MCP server that brings open scholarly sources in
 ```bash
 pip install zotlink
 ```
+*Now includes full browser support for all preprint servers by default!*
 
-**Dev + browser support (extras)**
+**Development installation**
 
 ***macOS (zsh)***
 ```bash
-pip install -e '.[browser]'
+pip install -e .
 ```
 
 ***Windows (CMD/PowerShell)***
 ```powershell
-pip install -e .[browser]
+pip install -e .
 ```
 
 ***Linux (bash)***
 ```bash
-pip install -e .[browser]
+pip install -e .
 ```
 
-Requires Python 3.10+. For browser-driven extraction (OSF/rxiv family), install the optional extra and run:
+Requires Python 3.10+. Includes browser-driven extraction for all preprint servers. After installation, run:
 
 ```bash
 python -m playwright install chromium
@@ -159,23 +160,23 @@ python run_server.py
 
 Logs are written to `~/.zotlink/zotlink.log`.
 
-## 🌐 Browser Mode (Optional)
+## 🌐 Browser Mode (Included)
 
-bioRxiv pages benefit from Playwright-based extraction; other sources use HTTP by default. Enable via:
+Browser-driven extraction is now included by default! All preprint servers (bioRxiv, medRxiv, chemRxiv) work automatically. After installation, initialize the browser runtime:
 
-***macOS (zsh)*** — install extras
+***macOS (zsh)*** — development install
 ```bash
-pip install -e '.[browser]'
+pip install -e .
 ```
 
-***Windows (CMD/PowerShell)*** — install extras
+***Windows (CMD/PowerShell)*** — development install
 ```powershell
-pip install -e .[browser]
+pip install -e .
 ```
 
-***Linux (bash)*** — install extras
+***Linux (bash)*** — development install
 ```bash
-pip install -e .[browser]
+pip install -e .
 ```
 
 **Install browser runtime**
@@ -274,12 +275,12 @@ Auth-required sources (e.g., Nature) are planned via bookmark-based cookie sync.
 - Zotero not detected: ensure Zotero Desktop is running (port 23119)
 - No PDF attached: some pages only expose links; the server falls back to link attachments
 - Browser mode errors: verify Playwright is installed and Chromium is available
-  - zsh: no matches found: .[browser] → use quotes: `pip install -e '.[browser]'`
+  - Install error: ensure Python 3.10+ is installed
 
 ## 🧪 Development
 
 ```bash
-pip install -e .[browser]
+pip install -e .
 python -m playwright install chromium
 zotlink  # or: python run_server.py
 ```
