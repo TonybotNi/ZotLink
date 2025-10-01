@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="zotlink",
-    version="1.3.2",
+    version="1.3.3",
     description="ZotLink - 智能学术文献管理 MCP 服务器",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
