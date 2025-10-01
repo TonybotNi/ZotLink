@@ -1005,7 +1005,7 @@ class ZoteroConnector:
                         return fallback_content
                     return None
             else:
-                # 对于普通网站，使用HTTP请求
+                # 对于普通网站，使用HTTP请求（带重试机制）
                 logger.info("📥 使用HTTP请求下载PDF")
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -1015,21 +1015,38 @@ class ZoteroConnector:
                     'Connection': 'keep-alive'
                 }
                 
-                response = requests.get(pdf_url, headers=headers, timeout=30, stream=True)
-                
-                if response.status_code == 200:
-                    content = response.content
-                    
-                    # 验证是否为有效PDF
-                    if content and content.startswith(b'%PDF'):
-                        logger.info(f"✅ HTTP下载成功: {len(content)} bytes")
-                        return content
-                    else:
-                        logger.warning("⚠️ 下载的内容不是有效PDF")
-                        return None
-                else:
-                    logger.warning(f"⚠️ HTTP下载失败: {response.status_code}")
-                    return None
+                # 🎯 v1.3.6: 添加重试机制，解决网络中断导致的下载失败
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        response = requests.get(pdf_url, headers=headers, timeout=30, stream=True)
+                        
+                        if response.status_code == 200:
+                            content = response.content
+                            
+                            # 验证是否为有效PDF
+                            if content and content.startswith(b'%PDF'):
+                                logger.info(f"✅ HTTP下载成功: {len(content):,} bytes")
+                                return content
+                            else:
+                                logger.warning("⚠️ 下载的内容不是有效PDF")
+                                return None
+                        else:
+                            logger.warning(f"⚠️ HTTP下载失败: {response.status_code}")
+                            return None
+                            
+                    except (requests.exceptions.ConnectionError, 
+                            requests.exceptions.ChunkedEncodingError,
+                            requests.exceptions.Timeout) as e:
+                        if attempt < max_retries - 1:
+                            wait_time = 2 ** attempt  # 指数退避：1s, 2s, 4s
+                            logger.warning(f"⚠️ PDF下载中断: {type(e).__name__}，{wait_time}秒后重试 (第{attempt+1}/{max_retries}次)")
+                            import time
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            logger.error(f"❌ PDF下载失败（已重试{max_retries}次）: {e}")
+                            return None
                     
         except Exception as e:
             logger.error(f"❌ PDF下载异常: {e}")
