@@ -270,3 +270,13 @@ See `docs/DEVELOPMENT.md` for code structure, adding new extractors, and release
 ## 📄 License
 
 MIT (see SPDX identifier in packaging metadata)
+
+## 🌟 GitHub Star History
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=tonybotni/zotlink&type=Date)](https://star-history.com/#tonybotni/zotlink&Date)
+
+Made with ❤️ for Zotero community
+
+</div> 

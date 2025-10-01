@@ -271,4 +271,12 @@ zotlink  # 或：python run_server.py
 
 MIT（打包元数据中含 SPDX 标识）
 
+## 🌟 GitHub Star 历史
 
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=tonybotni/zotlink&type=Date)](https://star-history.com/#tonybotni/zotlink&Date)
+
+为 Zotero 社区倾情打造 ❤️
+
+</div>
