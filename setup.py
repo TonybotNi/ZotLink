@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="zotlink",
-    version="1.3.6",
+    version="1.3.7",
     description="ZotLink - 智能学术文献管理 MCP 服务器",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
@@ -36,7 +36,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "zotlink=zotlink.zotero_mcp_server:run",
+            "zotlink=zotlink.cli:main",
         ],
     },
     classifiers=[
