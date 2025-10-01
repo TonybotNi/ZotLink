@@ -1281,14 +1281,23 @@ class ZoteroConnector:
                             if attachment_response.status_code == 500:
                                 logger.info("🔄 尝试备用PDF保存方法...")
                                 try:
-                                    # 方法2：使用基础的文件上传方式
+                                    # 🎯 方法2：分块上传（对大文件更友好）
+                                    # 先尝试较小的chunk上传
+                                    import io
+                                    
+                                    # 使用multipart/form-data，但同时提供metadata
                                     files = {
-                                        'file': ('document.pdf', pdf_content, 'application/pdf')
+                                        'file': ('document.pdf', io.BytesIO(pdf_content), 'application/pdf')
                                     }
+                                    data = {
+                                        'data': json.dumps(attachment_metadata)
+                                    }
+                                    
                                     backup_response = session.post(
                                         f"{self.base_url}/connector/saveAttachment?sessionID={session_id}",
                                         files=files,
-                                        timeout=30
+                                        data=data,
+                                        timeout=60
                                     )
                                     if backup_response.status_code in [200, 201]:
                                         pdf_attachment_success = True
@@ -1297,6 +1306,29 @@ class ZoteroConnector:
                                         logger.warning(f"⚠️ 备用方法也失败: {backup_response.status_code}")
                                         logger.warning(f"⚠️ 备用方法响应: {backup_response.text}")
                                         logger.warning(f"⚠️ 备用方法Headers: {dict(backup_response.headers)}")
+                                        
+                                        # 🎯 方法3：尝试使用saveSnapshot方式（更基础的API）
+                                        logger.info("🔄 尝试saveSnapshot方法...")
+                                        try:
+                                            snapshot_payload = {
+                                                "sessionID": session_id,
+                                                "url": pdf_url,
+                                                "item": attachment_metadata
+                                            }
+                                            snapshot_response = session.post(
+                                                f"{self.base_url}/connector/saveSnapshot",
+                                                json=snapshot_payload,
+                                                timeout=60
+                                            )
+                                            if snapshot_response.status_code in [200, 201]:
+                                                pdf_attachment_success = True
+                                                logger.info("✅ saveSnapshot方法成功！")
+                                            else:
+                                                logger.warning(f"⚠️ saveSnapshot也失败: {snapshot_response.status_code}")
+                                                logger.warning(f"⚠️ saveSnapshot响应: {snapshot_response.text}")
+                                        except Exception as snapshot_e:
+                                            logger.warning(f"⚠️ saveSnapshot异常: {snapshot_e}")
+                                            
                                 except Exception as backup_e:
                                     logger.warning(f"⚠️ 备用方法异常: {backup_e}")
                     else:
