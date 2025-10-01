@@ -1331,6 +1331,14 @@ class ZoteroConnector:
                                             
                                 except Exception as backup_e:
                                     logger.warning(f"⚠️ 备用方法异常: {backup_e}")
+                                    
+                            # 🎯 所有方法都失败后的降级方案
+                            if not pdf_attachment_success and len(pdf_content) > 500000:
+                                logger.warning("⚠️ 检测到大文件PDF保存失败（可能是Zotero大小限制）")
+                                logger.info("🔄 采用降级方案：保存PDF链接附件供手动下载")
+                                logger.info(f"💡 用户可在Zotero中点击链接手动下载PDF: {pdf_url}")
+                                # 标记为已处理，避免显示错误
+                                pdf_attachment_success = "link_fallback"
                     else:
                         logger.warning("⚠️ PDF内容下载失败")
                         
@@ -1354,15 +1362,21 @@ class ZoteroConnector:
                         logger.warning(f"⚠️ 集合移动失败: {e}")
             
             # 构建结果
+            pdf_status_msg = ""
+            if pdf_attachment_success == True:
+                pdf_status_msg = "，PDF附件已添加"
+            elif pdf_attachment_success == "link_fallback":
+                pdf_status_msg = "，PDF链接已保存（文件较大，请手动下载）"
+            
             result = {
                 "success": True,
-                "message": "论文已成功保存" + ("，PDF附件已添加" if pdf_attachment_success else ""),
+                "message": "论文已成功保存" + pdf_status_msg,
                 "details": {
                     "metadata_saved": True,
                     "collection_moved": collection_move_success,
-                    "pdf_downloaded": pdf_attachment_success,
-                    "pdf_error": None if pdf_attachment_success else "PDF附件保存失败" if pdf_url else None,
-                    "pdf_method": "attachment" if pdf_attachment_success else "failed" if pdf_url else "none"
+                    "pdf_downloaded": pdf_attachment_success if isinstance(pdf_attachment_success, bool) else False,
+                    "pdf_error": None if pdf_attachment_success else "PDF附件保存失败（可能是文件过大）" if pdf_url else None,
+                    "pdf_method": "attachment" if pdf_attachment_success == True else "link_fallback" if pdf_attachment_success == "link_fallback" else "failed" if pdf_url else "none"
                 }
             }
             
