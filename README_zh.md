@@ -305,7 +305,8 @@ zotlink  # 或：python run_server.py
 
 - 稳定性与质量
   - [x] 可配置的 Zotero 数据库路径（ENV + ~/.zotlink/config.json）
-  - [ ] Windows 浏览器模式加固（有头、重试、反检测、平滑回退）
+  - [x] 浏览器失败时的HTTP回退机制（Windows兼容性）
+  - [ ] Windows playwright优化（当前限制：Python asyncio ProactorEventLoop与MCP事件循环嵌套问题）
   - [ ] 占位标题的保存后纠正（自动二次提取标题）
   - [ ] 增强 PDF 启发式与备用 URL 策略
   - [ ] Crossref DOI 富化作为回退
