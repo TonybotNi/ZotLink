@@ -251,9 +251,26 @@ class PreprintExtractor(BaseExtractor):
     
     def _construct_pdf_url(self, url: str, doi: Optional[str], site_config: Dict) -> Optional[str]:
         """构造PDF URL"""
-        if 'medrxiv.org' in url.lower() and doi:
-            doi_id = doi.replace('10.1101/', '')
-            return f"https://www.medrxiv.org/content/10.1101/{doi_id}.full.pdf"
+        if 'medrxiv.org' in url.lower() or 'biorxiv.org' in url.lower():
+            # 🎯 关键修复：从URL提取完整的文档ID（包含版本号v1/v2等）
+            # 正确: https://www.medrxiv.org/content/10.1101/2025.09.22.25336422v1
+            # 提取: 2025.09.22.25336422v1
+            doc_id_match = re.search(r'/content/(?:10\.1101/)?([^/?]+)', url)
+            if doc_id_match:
+                full_doc_id = doc_id_match.group(1)
+                # 确保包含版本号（如果原URL有的话）
+                if 'medrxiv.org' in url.lower():
+                    return f"https://www.medrxiv.org/content/10.1101/{full_doc_id}.full.pdf"
+                else:
+                    return f"https://www.biorxiv.org/content/10.1101/{full_doc_id}.full.pdf"
+            # 回退：如果URL提取失败，使用DOI（可能缺少版本号）
+            elif doi:
+                doi_id = doi.replace('10.1101/', '')
+                logger.warning(f"⚠️ 从URL提取失败，使用DOI构造PDF链接（可能缺少版本号）")
+                if 'medrxiv.org' in url.lower():
+                    return f"https://www.medrxiv.org/content/10.1101/{doi_id}.full.pdf"
+                else:
+                    return f"https://www.biorxiv.org/content/10.1101/{doi_id}.full.pdf"
         
         elif 'chemrxiv.org' in url.lower():
             article_match = re.search(r'/([a-f0-9-]{36})/', url)

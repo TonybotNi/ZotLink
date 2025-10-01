@@ -545,13 +545,15 @@ class EnhancedGenericExtractor(BaseExtractor):
     
     def _extract_biorxiv_medrxiv_pdf(self, url: str) -> Optional[str]:
         """提取bioRxiv/medRxiv的离线PDF链接"""
-        doi_match = re.search(r'10\.1101/([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+)', url)
-        if doi_match:
-            doi_id = doi_match.group(1)
+        # 🎯 关键修复：提取完整文档ID（包含版本号v1/v2等）
+        # 例如: /content/10.1101/2025.09.22.25336422v1 → 2025.09.22.25336422v1
+        doc_id_match = re.search(r'/content/(?:10\.1101/)?([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+v?\d*)', url)
+        if doc_id_match:
+            full_doc_id = doc_id_match.group(1)
             if 'biorxiv.org' in url.lower():
-                return f"https://www.biorxiv.org/content/10.1101/{doi_id}.full.pdf"
+                return f"https://www.biorxiv.org/content/10.1101/{full_doc_id}.full.pdf"
             elif 'medrxiv.org' in url.lower():
-                return f"https://www.medrxiv.org/content/10.1101/{doi_id}.full.pdf"
+                return f"https://www.medrxiv.org/content/10.1101/{full_doc_id}.full.pdf"
         return None
     
     def _select_primary_pdf(self, attachments: List[Dict]) -> Optional[Dict]:

@@ -536,10 +536,14 @@ class GenericOpenAccessExtractor(BaseExtractor):
                         ]
                         service = "bioRxiv"
                     else:
+                        # 🎯 修复：从URL提取完整ID（含版本号）
+                        doc_id_match = re.search(r'/content/(?:10\.1101/)?([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+v?\d*)', url)
+                        full_doc_id = doc_id_match.group(1) if doc_id_match else doi_id
+                        
                         possible_pdf_urls = [
-                            f"https://www.medrxiv.org/content/10.1101/{doi_id}.full.pdf",
-                            f"https://www.medrxiv.org/content/medrxiv/early/{year}/{month.zfill(2)}/{day.zfill(2)}/{doi_id}/{doi_id}.full.pdf",
-                            f"https://www.medrxiv.org/content/early/{year}/{month.zfill(2)}/{day.zfill(2)}/{doi_id}.full.pdf"
+                            f"https://www.medrxiv.org/content/10.1101/{full_doc_id}.full.pdf",
+                            f"https://www.medrxiv.org/content/medrxiv/early/{year}/{month.zfill(2)}/{day.zfill(2)}/{full_doc_id}/{full_doc_id}.full.pdf",
+                            f"https://www.medrxiv.org/content/early/{year}/{month.zfill(2)}/{day.zfill(2)}/{full_doc_id}.full.pdf"
                         ]
                         service = "medRxiv"
                     

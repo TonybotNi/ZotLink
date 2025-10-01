@@ -70,28 +70,35 @@ class BioRxivDirectExtractor(BaseExtractor):
     
     def _extract_from_url(self, url: str) -> Dict[str, Any]:
         """从URL提取基本信息"""
-        # 提取DOI和日期
-        doi_match = re.search(r'10\.1101/(\d{4})\.(\d{2})\.(\d{2})\.(\d+)', url)
-        if not doi_match:
-            return {"error": "无法从URL提取DOI"}
+        # 🎯 关键修复：提取完整文档ID（包含版本号v1/v2等）
+        # 例如: /content/10.1101/2024.06.26.600822v2 → 包含v2
+        doc_id_match = re.search(r'/content/(?:10\.1101/)?([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+v?\d*)', url)
+        if not doc_id_match:
+            return {"error": "无法从URL提取文档ID"}
         
+        full_doc_id = doc_id_match.group(1)
+        
+        # 提取DOI和日期（从完整ID中分离）
+        doi_match = re.search(r'(\d{4})\.(\d{2})\.(\d{2})\.(\d+)', full_doc_id)
+        if not doi_match:
+            return {"error": "无法解析文档ID"}
+            
         year, month, day, version = doi_match.groups()
         doi = f"10.1101/{year}.{month}.{day}.{version}"
-        paper_id = f"{year}.{month}.{day}.{version}"
         
         # 构造元数据
         metadata = {
             "itemType": "preprint", 
-            "title": f"bioRxiv preprint {paper_id}",
+            "title": f"bioRxiv preprint {full_doc_id}",
             "creators": [{"creatorType": "author", "firstName": "Unknown", "lastName": "Author"}],
             "abstractNote": "bioRxiv preprint - PDF auto-downloaded",
             "url": url,
             "DOI": doi,
             "repository": "bioRxiv", 
-            "archiveID": paper_id,
+            "archiveID": full_doc_id,
             "date": f"{year}-{month}-{day}",
             "libraryCatalog": "bioRxiv",
-            "pdf_url": f"https://www.biorxiv.org/content/10.1101/{paper_id}.full.pdf",
+            "pdf_url": f"https://www.biorxiv.org/content/10.1101/{full_doc_id}.full.pdf",
             "extractor": "BioRxiv-Direct"
         }
         
