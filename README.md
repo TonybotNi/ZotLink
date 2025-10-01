@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="ZotLink Logo" width="150" height="150">
+<img src="https://pic-1313147768.cos.ap-chengdu.myqcloud.com/ZotLink/logo.png" alt="ZotLink Logo" width="150" height="150">
 
 # ZotLink
 
