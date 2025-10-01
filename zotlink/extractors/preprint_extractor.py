@@ -273,10 +273,15 @@ class PreprintExtractor(BaseExtractor):
                     return f"https://www.biorxiv.org/content/10.1101/{doi_id}.full.pdf"
         
         elif 'chemrxiv.org' in url.lower():
-            article_match = re.search(r'/([a-f0-9-]{36})/', url)
+            # 🎯 修复：支持24字符和36字符的Article ID
+            # 例如：68d4f0953e708a7649229138 (24字符) 或 UUID格式 (36字符)
+            article_match = re.search(r'article-details/([a-f0-9-]{24,})', url)
             if article_match:
                 article_id = article_match.group(1)
+                logger.info(f"✅ 提取ChemRxiv Article ID: {article_id}")
                 return f"https://chemrxiv.org/engage/api-gateway/chemrxiv/assets/orp/resource/item/{article_id}/original/manuscript.pdf"
+            else:
+                logger.warning(f"⚠️ 无法从URL提取ChemRxiv Article ID: {url}")
         
         return None
     

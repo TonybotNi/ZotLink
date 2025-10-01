@@ -305,7 +305,8 @@ See `docs/DEVELOPMENT.md` for code structure, adding new extractors, and release
 
 - Stability & Quality
   - [x] Configurable Zotero DB path (ENV + ~/.zotlink/config.json)
-  - [ ] Windows browser-mode hardening (headful, retries, anti-bot, graceful fallback)
+  - [x] HTTP fallback when browser fails (Windows compatibility)
+  - [ ] Windows playwright optimization (current limitation: Python asyncio ProactorEventLoop + MCP event loop nesting)
   - [ ] Post-save title correction when placeholder detected
   - [ ] Enhanced PDF heuristics and alternative URL strategies
   - [ ] Crossref DOI enrichment as fallback

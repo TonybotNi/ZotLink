@@ -46,13 +46,17 @@ class BioRxivDirectExtractor(BaseExtractor):
         # 🎯 尝试从页面获取真实标题
         try:
             page_metadata = self._extract_from_page(url)
-            if page_metadata.get('title'):
-                basic_info['title'] = page_metadata['title']
-                logger.info(f"✅ 从页面提取到标题: {page_metadata['title']}")
-            if page_metadata.get('creators'):
-                basic_info['creators'] = page_metadata['creators']
-            if page_metadata.get('abstractNote'):
-                basic_info['abstractNote'] = page_metadata['abstractNote']
+            # 检查是否因403等错误跳过了页面提取
+            if page_metadata.get('_page_access_failed'):
+                logger.warning(f"⚠️ 页面访问失败（状态码：{page_metadata.get('status_code')}），使用基本信息")
+            else:
+                if page_metadata.get('title'):
+                    basic_info['title'] = page_metadata['title']
+                    logger.info(f"✅ 从页面提取到标题: {page_metadata['title']}")
+                if page_metadata.get('creators'):
+                    basic_info['creators'] = page_metadata['creators']
+                if page_metadata.get('abstractNote'):
+                    basic_info['abstractNote'] = page_metadata['abstractNote']
         except Exception as e:
             logger.warning(f"⚠️ 页面元数据提取失败: {e}")
         
@@ -119,7 +123,9 @@ class BioRxivDirectExtractor(BaseExtractor):
             
             if response.status_code != 200:
                 logger.warning(f"⚠️ 无法访问页面: {response.status_code}")
-                return {}
+                # 🎯 修复：即使403也返回基本结构，避免崩溃
+                # 这样至少能保存元数据，虽然可能缺少标题
+                return {'_page_access_failed': True, 'status_code': response.status_code}
             
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(response.content, 'html.parser')
