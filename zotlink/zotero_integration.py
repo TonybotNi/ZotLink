@@ -1281,23 +1281,14 @@ class ZoteroConnector:
                             if attachment_response.status_code == 500:
                                 logger.info("🔄 尝试备用PDF保存方法...")
                                 try:
-                                    # 🎯 方法2：分块上传（对大文件更友好）
-                                    # 先尝试较小的chunk上传
-                                    import io
-                                    
-                                    # 使用multipart/form-data，但同时提供metadata
+                                    # 方法2：使用基础的文件上传方式
                                     files = {
-                                        'file': ('document.pdf', io.BytesIO(pdf_content), 'application/pdf')
+                                        'file': ('document.pdf', pdf_content, 'application/pdf')
                                     }
-                                    data = {
-                                        'data': json.dumps(attachment_metadata)
-                                    }
-                                    
                                     backup_response = session.post(
                                         f"{self.base_url}/connector/saveAttachment?sessionID={session_id}",
                                         files=files,
-                                        data=data,
-                                        timeout=60
+                                        timeout=30
                                     )
                                     if backup_response.status_code in [200, 201]:
                                         pdf_attachment_success = True
@@ -1306,39 +1297,8 @@ class ZoteroConnector:
                                         logger.warning(f"⚠️ 备用方法也失败: {backup_response.status_code}")
                                         logger.warning(f"⚠️ 备用方法响应: {backup_response.text}")
                                         logger.warning(f"⚠️ 备用方法Headers: {dict(backup_response.headers)}")
-                                        
-                                        # 🎯 方法3：尝试使用saveSnapshot方式（更基础的API）
-                                        logger.info("🔄 尝试saveSnapshot方法...")
-                                        try:
-                                            snapshot_payload = {
-                                                "sessionID": session_id,
-                                                "url": pdf_url,
-                                                "item": attachment_metadata
-                                            }
-                                            snapshot_response = session.post(
-                                                f"{self.base_url}/connector/saveSnapshot",
-                                                json=snapshot_payload,
-                                                timeout=60
-                                            )
-                                            if snapshot_response.status_code in [200, 201]:
-                                                pdf_attachment_success = True
-                                                logger.info("✅ saveSnapshot方法成功！")
-                                            else:
-                                                logger.warning(f"⚠️ saveSnapshot也失败: {snapshot_response.status_code}")
-                                                logger.warning(f"⚠️ saveSnapshot响应: {snapshot_response.text}")
-                                        except Exception as snapshot_e:
-                                            logger.warning(f"⚠️ saveSnapshot异常: {snapshot_e}")
-                                            
                                 except Exception as backup_e:
                                     logger.warning(f"⚠️ 备用方法异常: {backup_e}")
-                                    
-                            # 🎯 所有方法都失败后的降级方案
-                            if not pdf_attachment_success and len(pdf_content) > 500000:
-                                logger.warning("⚠️ 检测到大文件PDF保存失败（可能是Zotero大小限制）")
-                                logger.info("🔄 采用降级方案：保存PDF链接附件供手动下载")
-                                logger.info(f"💡 用户可在Zotero中点击链接手动下载PDF: {pdf_url}")
-                                # 标记为已处理，避免显示错误
-                                pdf_attachment_success = "link_fallback"
                     else:
                         logger.warning("⚠️ PDF内容下载失败")
                         
@@ -1362,21 +1322,15 @@ class ZoteroConnector:
                         logger.warning(f"⚠️ 集合移动失败: {e}")
             
             # 构建结果
-            pdf_status_msg = ""
-            if pdf_attachment_success == True:
-                pdf_status_msg = "，PDF附件已添加"
-            elif pdf_attachment_success == "link_fallback":
-                pdf_status_msg = "，PDF链接已保存（文件较大，请手动下载）"
-            
             result = {
                 "success": True,
-                "message": "论文已成功保存" + pdf_status_msg,
+                "message": "论文已成功保存" + ("，PDF附件已添加" if pdf_attachment_success else ""),
                 "details": {
                     "metadata_saved": True,
                     "collection_moved": collection_move_success,
-                    "pdf_downloaded": pdf_attachment_success if isinstance(pdf_attachment_success, bool) else False,
-                    "pdf_error": None if pdf_attachment_success else "PDF附件保存失败（可能是文件过大）" if pdf_url else None,
-                    "pdf_method": "attachment" if pdf_attachment_success == True else "link_fallback" if pdf_attachment_success == "link_fallback" else "failed" if pdf_url else "none"
+                    "pdf_downloaded": pdf_attachment_success,
+                    "pdf_error": None if pdf_attachment_success else "PDF附件保存失败" if pdf_url else None,
+                    "pdf_method": "attachment" if pdf_attachment_success else "failed" if pdf_url else "none"
                 }
             }
             
