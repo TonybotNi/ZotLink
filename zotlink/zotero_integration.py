@@ -1223,6 +1223,16 @@ class ZoteroConnector:
                         pdf_content = self._download_pdf_content(pdf_url)
                     
                     if pdf_content:
+                        # 🔍 诊断：检查下载内容的实际类型
+                        logger.info(f"📊 PDF内容大小: {len(pdf_content)} bytes")
+                        
+                        # 检查是否真的是PDF（前几个字节应该是%PDF）
+                        if pdf_content[:4] != b'%PDF':
+                            logger.error(f"❌ 下载的内容不是PDF！前20字节: {pdf_content[:20]}")
+                            logger.warning("⚠️ 可能下载了HTML错误页面，跳过PDF保存")
+                        else:
+                            logger.info(f"✅ 确认是PDF文件，版本标识: {pdf_content[:8]}")
+                        
                         # 准备附件元数据
                         import random
                         import string
@@ -1242,11 +1252,15 @@ class ZoteroConnector:
                             "X-Metadata": json.dumps(attachment_metadata)
                         }
                         
+                        # 🔧 Windows兼容性：增加超时时间，对大文件更宽容
+                        timeout_value = 60 if len(pdf_content) > 500000 else 30
+                        logger.info(f"⏱️ 使用超时时间: {timeout_value}秒")
+                        
                         attachment_response = session.post(
                             f"{self.base_url}/connector/saveAttachment?sessionID={session_id}",
                             data=pdf_content,
                             headers=attachment_headers,
-                            timeout=30
+                            timeout=timeout_value
                         )
                         
                         if attachment_response.status_code in [200, 201]:
@@ -1254,7 +1268,14 @@ class ZoteroConnector:
                             logger.info("✅ PDF附件保存成功！")
                         else:
                             logger.warning(f"⚠️ PDF附件保存失败: {attachment_response.status_code}")
-                            logger.warning(f"⚠️ 响应内容: {attachment_response.text[:500]}")
+                            logger.warning(f"⚠️ 完整响应内容: {attachment_response.text}")
+                            logger.warning(f"⚠️ 响应Headers: {dict(attachment_response.headers)}")
+                            
+                            # 🔍 额外诊断信息
+                            logger.info(f"🔍 请求URL: {self.base_url}/connector/saveAttachment?sessionID={session_id}")
+                            logger.info(f"🔍 请求Headers: {attachment_headers}")
+                            logger.info(f"🔍 PDF大小: {len(pdf_content)} bytes")
+                            logger.info(f"🔍 PDF前8字节: {pdf_content[:8]}")
                             
                             # 🔧 Windows兼容性：尝试备用方法
                             if attachment_response.status_code == 500:
@@ -1274,6 +1295,8 @@ class ZoteroConnector:
                                         logger.info("✅ 备用方法PDF保存成功！")
                                     else:
                                         logger.warning(f"⚠️ 备用方法也失败: {backup_response.status_code}")
+                                        logger.warning(f"⚠️ 备用方法响应: {backup_response.text}")
+                                        logger.warning(f"⚠️ 备用方法Headers: {dict(backup_response.headers)}")
                                 except Exception as backup_e:
                                     logger.warning(f"⚠️ 备用方法异常: {backup_e}")
                     else:
