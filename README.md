@@ -35,52 +35,70 @@ A lightweight, production-ready MCP server that brings open scholarly sources in
 
 ## 🚀 Quick Start
 
-### Install
+### 1️⃣ Install
 
-**Install from PyPI (recommended)**
 ```bash
 pip install zotlink
-```
-*Now includes full browser support for all preprint servers by default!*
-
-**Development installation**
-
-***macOS (zsh)***
-```bash
-pip install -e .
-```
-
-***Windows (CMD/PowerShell)***
-```powershell
-pip install -e .
-```
-
-***Linux (bash)***
-```bash
-pip install -e .
-```
-
-Requires Python 3.10+. Includes browser-driven extraction for all preprint servers. After installation, run:
-
-```bash
 python -m playwright install chromium
 ```
 
-### Run
+*Requires Python 3.10+. Includes full browser support for all preprint servers by default!*
 
-CLI (recommended):
+### 2️⃣ One-Command Configuration ✨
 
-```bash
-zotlink
-```
-
-Development mode:
+Use `zotlink init` to automatically generate MCP configuration:
 
 ```bash
-python run_server.py
+# Auto-detect Zotero path
+zotlink init
+
+# Or specify path manually
+zotlink init /Users/yourname/Zotero
 ```
 
-### MCP Integration (Claude Desktop)
+**The command outputs ready-to-use configuration JSON**, for example:
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "/opt/homebrew/.../zotlink",
+      "args": [],
+      "env": {
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
+      }
+    }
+  }
+}
+```
+
+### 3️⃣ Add to Claude Configuration
+
+Copy the generated configuration to your Claude Desktop config file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`  
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
+
+Restart Claude Desktop and you're ready to go!
+
+---
+
+### 🛠️ Development Installation
+
+```bash
+git clone https://github.com/your-org/ZotLink.git
+cd ZotLink
+pip install -e .
+python -m playwright install chromium
+```
+
+### MCP Configuration Details
+
+If you need manual configuration (without using `zotlink init`), see examples below:
+
+<details>
+<summary><b>📝 Manual Configuration Examples (click to expand)</b></summary>
 
 **Recommended configuration** (simple - just specify Zotero directory):
 
@@ -125,28 +143,9 @@ python run_server.py
 }
 ```
 
-**Fallback** (explicit Python path):
-
-```json
-{
-  "mcpServers": {
-    "zotlink": {
-      "command": "/full/path/to/python",
-      "args": ["-m", "zotlink.zotero_mcp_server"],
-      "env": {
-        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
-      }
-    }
-  }
-}
-```
-
-**Claude config file locations:**
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`  
-- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
-
 **Note**: Using `env` variables follows MCP standard and works with all MCP clients (Claude Desktop, Cherry Studio, etc.).
+
+</details>
 
 ## 🧰 Available Tools
 
@@ -160,92 +159,43 @@ python run_server.py
 
 Logs are written to `~/.zotlink/zotlink.log`.
 
-## 🌐 Browser Mode (Included)
+## 🌐 Browser Mode
 
-Browser-driven extraction is now included by default! All preprint servers (bioRxiv, medRxiv, chemRxiv) work automatically. After installation, initialize the browser runtime:
+Browser-driven extraction is included by default! All preprint servers (bioRxiv, medRxiv, chemRxiv) work automatically.
 
-***macOS (zsh)*** — development install
-```bash
-pip install -e .
-```
+The server switches to browser strategy automatically when needed (falls back to HTTP mode on Windows).
 
-***Windows (CMD/PowerShell)*** — development install
-```powershell
-pip install -e .
-```
-
-***Linux (bash)*** — development install
-```bash
-pip install -e .
-```
-
-**Install browser runtime**
-```bash
-python -m playwright install chromium
-```
-
-**Linux may require system dependencies**
+**Linux may require additional system dependencies**:
 ```bash
 sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2
 ```
 
-The server will switch to a browser strategy automatically when needed.
+### Advanced: Custom Zotero Paths
 
-### Optional: Custom Zotero Paths (DB/Storage)
-
-You can override the local Zotero database path and storage dir. Precedence: ENV vars > Claude config > local config file > defaults.
-
-1) Environment variables (highest priority)
+<details>
+<summary><b>🔧 Environment Variable Configuration (click to expand)</b></summary>
 
 **Recommended - Single directory**:
-- macOS/Linux (bash/zsh)
 ```bash
+# macOS/Linux
 export ZOTLINK_ZOTERO_ROOT=/Users/yourname/Zotero
+
+# Windows PowerShell
+$env:ZOTLINK_ZOTERO_ROOT='C:\Users\YourName\Zotero'
 ```
 
-- Windows (PowerShell)
-```powershell
-$env:ZOTLINK_ZOTERO_ROOT='C:\\Users\\YourName\\Zotero'
-```
-
-**Advanced - Separate paths** (backward compatibility):
-- macOS/Linux (bash/zsh)
+**Advanced - Separate paths**:
 ```bash
+# macOS/Linux
 export ZOTLINK_ZOTERO_DB=/Users/yourname/Zotero/zotero.sqlite
 export ZOTLINK_ZOTERO_DIR=/Users/yourname/Zotero/storage
+
+# Windows PowerShell
+$env:ZOTLINK_ZOTERO_DB='C:\Users\YourName\Zotero\zotero.sqlite'
+$env:ZOTLINK_ZOTERO_DIR='C:\Users\YourName\Zotero\storage'
 ```
 
-- Windows (PowerShell)
-```powershell
-$env:ZOTLINK_ZOTERO_DB='C:\\Users\\YourName\\Zotero\\zotero.sqlite'
-$env:ZOTLINK_ZOTERO_DIR='C:\\Users\\YourName\\Zotero\\storage'
-```
-
-2) Claude configuration (recommended for MCP users)
-
-Add Zotero paths directly to your Claude configuration file:
-
-```json
-{
-  "mcpServers": {
-    "zotlink": {
-      "command": "path/to/zotlink",
-      "args": [],
-      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
-      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
-    }
-  }
-}
-```
-
-Claude config file locations:
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`
-- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
-
-3) Local config file (traditional method)
-
-Create `~/.zotlink/config.json`:
+**Local config file** `~/.zotlink/config.json`:
 ```json
 {
   "zotero": {
@@ -255,12 +205,9 @@ Create `~/.zotlink/config.json`:
 }
 ```
 
-Default search locations when not configured:
-- macOS: `~/Zotero/zotero.sqlite` or `~/Library/Application Support/Zotero/Profiles/<profile>/zotero.sqlite`
-- Windows: `C:\\Users\\<User>\\Zotero\\zotero.sqlite` or `%APPDATA%\\Zotero\\Zotero\\Profiles\\<profile>\\zotero.sqlite`
-- Linux: `~/Zotero/zotero.sqlite` or `~/.zotero/zotero.sqlite`
+**Configuration precedence**: ENV vars > MCP env config > local config file > auto-detection
 
-Restart ZotLink after changing configuration.
+</details>
 
 ## 🧩 Supported Sources (Open)
 

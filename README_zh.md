@@ -36,52 +36,70 @@
 
 ## 🚀 快速开始
 
-### 安装
+### 1️⃣ 安装
 
-**从PyPI安装（推荐）**
 ```bash
 pip install zotlink
-```
-*现已默认包含所有预印本服务器的完整浏览器支持！*
-
-**开发安装**
-
-***macOS（zsh）***
-```bash
-pip install -e .
-```
-
-***Windows（CMD/PowerShell）***
-```powershell
-pip install -e .
-```
-
-***Linux（bash）***
-```bash
-pip install -e .
-```
-
-需要 Python 3.10+。现已默认包含浏览器驱动提取功能。安装后执行：
-
-```bash
 python -m playwright install chromium
 ```
 
-### 运行
+*需要 Python 3.10+。已默认包含所有预印本服务器的完整浏览器支持！*
 
-命令行（推荐）：
+### 2️⃣ 一键生成配置 ✨
 
-```bash
-zotlink
-```
-
-开发模式：
+使用 `zotlink init` 自动生成MCP配置：
 
 ```bash
-python run_server.py
+# 自动检测Zotero路径
+zotlink init
+
+# 或手动指定路径
+zotlink init /Users/yourname/Zotero
 ```
 
-### MCP 集成（Claude Desktop）
+**命令会输出可直接复制的配置JSON**，例如：
+
+```json
+{
+  "mcpServers": {
+    "zotlink": {
+      "command": "/opt/homebrew/.../zotlink",
+      "args": [],
+      "env": {
+        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
+      }
+    }
+  }
+}
+```
+
+### 3️⃣ 添加到Claude配置
+
+将生成的配置复制到Claude Desktop配置文件：
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`  
+- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
+
+重启Claude Desktop即可使用！
+
+---
+
+### 🛠️ 开发安装
+
+```bash
+git clone https://github.com/yourusername/ZotLink.git
+cd ZotLink
+pip install -e .
+python -m playwright install chromium
+```
+
+### MCP 配置说明
+
+如果需要手动配置（不使用 `zotlink init`），可参考以下配置：
+
+<details>
+<summary><b>📝 手动配置示例（点击展开）</b></summary>
 
 **推荐配置**（简单 - 只需指定Zotero目录）：
 
@@ -126,28 +144,9 @@ python run_server.py
 }
 ```
 
-**备用方式**（显式Python路径）：
-
-```json
-{
-  "mcpServers": {
-    "zotlink": {
-      "command": "/full/path/to/python",
-      "args": ["-m", "zotlink.zotero_mcp_server"],
-      "env": {
-        "ZOTLINK_ZOTERO_ROOT": "/Users/yourname/Zotero"
-      }
-    }
-  }
-}
-```
-
-**Claude配置文件位置**：
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`  
-- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
-
 **注意**: 使用 `env` 环境变量符合MCP标准，兼容所有MCP客户端（Claude Desktop、Cherry Studio等）。
+
+</details>
 
 ## 🧰 可用工具
 
@@ -161,92 +160,43 @@ python run_server.py
 
 日志写入 `~/.zotlink/zotlink.log`。
 
-## 🌐 浏览器模式（已内置）
+## 🌐 浏览器模式
 
-浏览器驱动提取现已默认包含！所有预印本服务器（bioRxiv、medRxiv、chemRxiv）自动工作。安装后初始化浏览器运行时：
+浏览器驱动提取已默认内置！所有预印本服务器（bioRxiv、medRxiv、chemRxiv）自动工作。
 
-***macOS（zsh）*** — 开发安装
-```bash
-pip install -e .
-```
+服务器会在需要时自动切换到浏览器策略（Windows上会回退到HTTP模式）。
 
-***Windows（CMD/PowerShell）*** — 开发安装
-```powershell
-pip install -e .
-```
-
-***Linux（bash）*** — 开发安装
-```bash
-pip install -e .
-```
-
-**安装浏览器运行时**
-```bash
-python -m playwright install chromium
-```
-
-**Linux 可能需要系统依赖**
+**Linux 可能需要额外系统依赖**：
 ```bash
 sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgbm1 libasound2
 ```
 
-服务器会在需要时自动切换到浏览器策略。
+### 高级：自定义 Zotero 路径
 
-### 可选：自定义 Zotero 路径（数据库/存储目录）
-
-支持多种配置方式，优先级：环境变量 > Claude配置 > 本地配置文件 > 默认探测。
-
-1) 环境变量（最高优先级）
+<details>
+<summary><b>🔧 环境变量配置（点击展开）</b></summary>
 
 **推荐方式 - 单目录**：
-- macOS/Linux（bash/zsh）
 ```bash
+# macOS/Linux
 export ZOTLINK_ZOTERO_ROOT=/Users/yourname/Zotero
+
+# Windows PowerShell
+$env:ZOTLINK_ZOTERO_ROOT='C:\Users\YourName\Zotero'
 ```
 
-- Windows（PowerShell）
-```powershell
-$env:ZOTLINK_ZOTERO_ROOT='C:\\Users\\YourName\\Zotero'
-```
-
-**高级方式 - 分别指定**（向后兼容）：
-- macOS/Linux（bash/zsh）
+**高级方式 - 分别指定**：
 ```bash
+# macOS/Linux
 export ZOTLINK_ZOTERO_DB=/Users/yourname/Zotero/zotero.sqlite
 export ZOTLINK_ZOTERO_DIR=/Users/yourname/Zotero/storage
+
+# Windows PowerShell
+$env:ZOTLINK_ZOTERO_DB='C:\Users\YourName\Zotero\zotero.sqlite'
+$env:ZOTLINK_ZOTERO_DIR='C:\Users\YourName\Zotero\storage'
 ```
 
-- Windows（PowerShell）
-```powershell
-$env:ZOTLINK_ZOTERO_DB='C:\\Users\\YourName\\Zotero\\zotero.sqlite'
-$env:ZOTLINK_ZOTERO_DIR='C:\\Users\\YourName\\Zotero\\storage'
-```
-
-2) Claude 配置文件（推荐，适合MCP用户）
-
-直接在 Claude 配置文件中添加 Zotero 路径，无需额外配置文件：
-
-```json
-{
-  "mcpServers": {
-    "zotlink": {
-      "command": "path/to/zotlink",
-      "args": [],
-      "zotero_database_path": "/Users/yourname/Zotero/zotero.sqlite",
-      "zotero_storage_dir": "/Users/yourname/Zotero/storage"
-    }
-  }
-}
-```
-
-Claude 配置文件位置：
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`
-- **Windows**: `~/AppData/Roaming/Claude/claude_desktop_config.json`
-
-3) 本地配置文件（传统方式）
-
-在用户目录创建 `~/.zotlink/config.json`：
+**本地配置文件** `~/.zotlink/config.json`：
 ```json
 {
   "zotero": {
@@ -256,12 +206,9 @@ Claude 配置文件位置：
 }
 ```
 
-未配置时的常见默认路径：
-- macOS: `~/Zotero/zotero.sqlite` 或 `~/Library/Application Support/Zotero/Profiles/<profile>/zotero.sqlite`
-- Windows: `C:\\Users\\<User>\\Zotero\\zotero.sqlite` 或 `%APPDATA%\\Zotero\\Zotero\\Profiles\\<profile>\\zotero.sqlite`
-- Linux: `~/Zotero/zotero.sqlite` 或 `~/.zotero/zotero.sqlite`
+**配置优先级**：环境变量 > MCP env配置 > 本地配置文件 > 自动检测
 
-修改后请重启 ZotLink 使配置生效。
+</details>
 
 ## 🧩 支持的开放站点
 
