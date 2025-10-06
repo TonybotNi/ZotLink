@@ -33,6 +33,20 @@ A lightweight, production-ready MCP server that brings open scholarly sources in
 - 🧩 **Deep MCP Interoperability**: Integrates with literature-related MCPs such as [arxiv-mcp-server](https://github.com/blazickjp/arxiv-mcp-server) and [Zotero MCP](https://github.com/54yyyu/zotero-mcp)
 - 📝 **Unified Logging**: `~/.zotlink/zotlink.log`
 
+---
+
+### 🎥 Demo Video
+
+<div align="center">
+
+[![Watch the video](https://pic-1313147768.cos.ap-chengdu.myqcloud.com/ZotLink/bili_face.png)](https://www.bilibili.com/video/BV1o6xazvEfH/)
+
+> **Click the image above to watch a 1-minute demo video on Bilibili.**
+
+</div>
+
+---
+
 ## 🚀 Quick Start
 
 ### 1️⃣ Install

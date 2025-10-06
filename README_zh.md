@@ -34,6 +34,20 @@
 - 🧩 **深度 MCP 互操作**：与文献相关 MCP 深度适配，例如 [arxiv-mcp-server](https://github.com/blazickjp/arxiv-mcp-server) 与 [Zotero MCP](https://github.com/54yyyu/zotero-mcp)
 - 📝 **统一日志**：`~/.zotlink/zotlink.log`
 
+---
+
+### 🎥 视频演示
+
+<div align="center">
+
+[![点击观看视频](https://pic-1313147768.cos.ap-chengdu.myqcloud.com/ZotLink/bili_face.png)](https://www.bilibili.com/video/BV1o6xazvEfH/)
+
+> **点击上方图片，观看B站上的1分钟功能演示视频。**
+
+</div>
+
+---
+
 ## 🚀 快速开始
 
 ### 1️⃣ 安装
