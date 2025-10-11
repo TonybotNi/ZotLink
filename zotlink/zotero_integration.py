@@ -689,16 +689,27 @@ class ZoteroConnector:
         if paper_info.get('authors'):
             authors_str = paper_info['authors']
             
-            # 🚨 关键修复: 正确分割作者列表
-            # 优先使用分号分割（我们的标准格式）
+            # 🔧 修复: 正确分割作者列表
             if ';' in authors_str:
+                # 标准格式：使用分号分隔
                 author_names = authors_str.split(';')
-            elif ',' in authors_str and ' and ' not in authors_str:
-                # 如果没有分号但有逗号，且不是连接词，可能是老格式
-                author_names = authors_str.split(',')
+            elif ' and ' in authors_str:
+                # 使用 "and" 连接的格式
+                author_names = [a.strip() for a in authors_str.split(' and ')]
+            elif authors_str.count(',') >= 3:
+                # 至少3个逗号，可能是多个作者 "Last1, First1, Last2, First2"
+                parts = [p.strip() for p in authors_str.split(',')]
+                if len(parts) % 2 == 0:
+                    # 偶数个部分，两两配对
+                    author_names = []
+                    for i in range(0, len(parts), 2):
+                        if i + 1 < len(parts):
+                            author_names.append(f"{parts[i]}, {parts[i+1]}")
+                else:
+                    author_names = [authors_str]
             else:
-                # 备用：按'and'分割
-                author_names = authors_str.replace(' and ', ',').split(',')
+                # 单作者或无法确定，保持原样
+                author_names = [authors_str]
             
             for author_name in author_names[:15]:  # 限制作者数量
                 author_name = author_name.strip()
