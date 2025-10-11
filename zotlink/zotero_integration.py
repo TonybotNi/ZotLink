@@ -736,7 +736,15 @@ class ZoteroConnector:
         
         # 解析作者 - 改进的逻辑支持多种格式
         authors = []
-        if paper_info.get('authors'):
+        
+        # 🔧 修复：优先使用已经格式化的 creators（Zotero格式数组）
+        # 部分提取器（如 PreprintExtractor, BioRxivDirectExtractor）直接返回 Zotero 格式
+        if paper_info.get('creators') and isinstance(paper_info['creators'], list):
+            logger.debug("✅ 检测到 creators 字段（Zotero格式），直接使用")
+            authors = paper_info['creators'][:15]  # 限制作者数量
+        
+        # 否则解析 authors 字符串格式（arXiv, Generic 等提取器使用）
+        elif paper_info.get('authors'):
             authors_str = paper_info['authors']
             
             # 🔧 修复: 正确分割作者列表，支持多种格式
