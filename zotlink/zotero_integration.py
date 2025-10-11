@@ -681,35 +681,74 @@ class ZoteroConnector:
                 "message": f"保存到Zotero失败: {e}"
             }
     
+    def _split_comma_authors(self, authors_str: str) -> list:
+        """
+        智能分割逗号分隔的作者
+        
+        支持两种格式：
+        1. "First Last, First Last" - 逗号分隔不同作者
+        2. "Last, First, Last, First" - 连续的"姓, 名"格式
+        """
+        parts = [p.strip() for p in authors_str.split(',')]
+        
+        # 如果只有1-2个部分
+        if len(parts) <= 2:
+            # 检查是否是 "First Last, First Last" 格式
+            # 启发式规则：如果第一部分和第二部分都包含空格，可能是两个独立作者
+            if len(parts) == 2 and ' ' in parts[0] and ' ' in parts[1]:
+                # "John Smith, Jane Doe" -> 两个作者
+                return parts
+            else:
+                # "Smith, John" -> 一个作者
+                return [authors_str]
+        
+        # 多个部分的情况
+        # 启发式规则1：检查是否所有部分都包含空格（表示 "First Last" 格式）
+        all_have_spaces = all(' ' in part for part in parts)
+        if all_have_spaces:
+            # "John Smith, Jane Doe, Bob Chen" -> 三个独立作者
+            return parts
+        
+        # 启发式规则2：检查是否是连续的"姓, 名"格式
+        # 如果部分数量是偶数，且交替出现"无空格"和"可能有空格"的模式
+        if len(parts) % 2 == 0:
+            # 检查奇数索引（姓）是否通常不含空格
+            odd_indices_no_space = sum(1 for i in range(0, len(parts), 2) if ' ' not in parts[i])
+            if odd_indices_no_space > len(parts) // 4:  # 至少25%的"姓"不含空格
+                # 很可能是 "Last, First, Last, First" 格式
+                author_names = []
+                for i in range(0, len(parts), 2):
+                    if i + 1 < len(parts):
+                        author_names.append(f"{parts[i]}, {parts[i+1]}")
+                return author_names
+        
+        # 默认：如果有多个逗号但无法确定，尝试按空格数判断
+        # 如果大部分部分都有空格，可能是独立作者
+        parts_with_space = sum(1 for part in parts if ' ' in part)
+        if parts_with_space > len(parts) * 0.6:  # 超过60%有空格
+            return parts
+        
+        # 无法确定，保持原样
+        return [authors_str]
+    
     def _convert_to_zotero_format(self, paper_info: Dict) -> Dict:
         """将论文信息转换为Zotero格式"""
         
-        # 解析作者 - 修复分号分隔问题
+        # 解析作者 - 改进的逻辑支持多种格式
         authors = []
         if paper_info.get('authors'):
             authors_str = paper_info['authors']
             
-            # 🔧 修复: 正确分割作者列表
+            # 🔧 修复: 正确分割作者列表，支持多种格式
             if ';' in authors_str:
                 # 标准格式：使用分号分隔
                 author_names = authors_str.split(';')
             elif ' and ' in authors_str:
                 # 使用 "and" 连接的格式
                 author_names = [a.strip() for a in authors_str.split(' and ')]
-            elif authors_str.count(',') >= 3:
-                # 至少3个逗号，可能是多个作者 "Last1, First1, Last2, First2"
-                parts = [p.strip() for p in authors_str.split(',')]
-                if len(parts) % 2 == 0:
-                    # 偶数个部分，两两配对
-                    author_names = []
-                    for i in range(0, len(parts), 2):
-                        if i + 1 < len(parts):
-                            author_names.append(f"{parts[i]}, {parts[i+1]}")
-                else:
-                    author_names = [authors_str]
             else:
-                # 单作者或无法确定，保持原样
-                author_names = [authors_str]
+                # 处理逗号分隔的情况 - 智能判断格式
+                author_names = self._split_comma_authors(authors_str)
             
             for author_name in author_names[:15]:  # 限制作者数量
                 author_name = author_name.strip()
